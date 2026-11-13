@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrangement-Werkstatt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e1013; --panel: #161a1f; --panel2: #1d2228; --line: #2a3038; --text: #e8ecf1; --muted: #8b95a3;
+    --accent: #ffb547; --good: #4cd9a6; --warn: #ff7a59; --info: #6fb3ff;
+    --intro: #5b6b80; --groove: #2bb39a; --build: #e0a33a; --breakdown: #8f6bff; --drop: #ff5470; --outro: #4c5869;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 15px; line-height: 1.45; -webkit-text-size-adjust: 100%; }
+  .mono, .num { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  header { padding: 22px 20px 6px; max-width: 1180px; margin: 0 auto; }
+  header h1 { margin: 0; font-size: 26px; letter-spacing: -0.02em; }
+  header h1 span { color: var(--accent); }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  nav.tabs { position: sticky; top: 0; z-index: 20; background: rgba(14,16,19,.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  nav.tabs .in { max-width: 1180px; margin: 0 auto; display: flex; gap: 4px; padding: 8px 14px; overflow-x: auto; }
+  nav.tabs button { background: none; border: 0; color: var(--muted); font: inherit; font-weight: 600; padding: 9px 14px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+  nav.tabs button.on { background: var(--panel2); color: var(--text); }
+  nav.tabs button .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--line); margin-right: 7px; vertical-align: middle; }
+  nav.tabs button .dot.ok { background: var(--good); }
+  main { max-width: 1180px; margin: 0 auto; padding: 16px 14px 80px; }
+  section.view { display: none; }
+  section.view.on { display: block; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+  .card h2 { margin: 0 0 4px; font-size: 18px; }
+  .card h3 { margin: 0 0 8px; font-size: 15px; }
+  .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 12px; }
+  .drop { border: 1.5px dashed var(--line); border-radius: var(--radius); padding: 22px; text-align: center; color: var(--muted); cursor: pointer; transition: border-color .15s, background .15s; display: block; }
+  .drop:hover, .drop.over { border-color: var(--accent); background: rgba(255,181,71,.05); color: var(--text); }
+  .drop strong { color: var(--text); display: block; font-size: 16px; margin-bottom: 2px; }
+  .drop input { display: none; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 12px 0; }
+  .stat { background: var(--panel2); border-radius: 8px; padding: 9px 11px; }
+  .stat .k { color: var(--muted); font-size: 12px; }
+  .stat .v { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 600; }
+  button.btn { background: var(--panel2); color: var(--text); border: 1px solid var(--line); font: inherit; font-weight: 600; padding: 8px 13px; border-radius: 8px; cursor: pointer; }
+  button.btn:hover { border-color: #3a424d; }
+  button.btn.primary { background: var(--accent); color: #1a1205; border-color: var(--accent); }
+  button.btn.danger { color: var(--warn); }
+  button.btn.small { padding: 4px 9px; font-size: 13px; }
+  button.btn:disabled { opacity: .45; cursor: default; }
+  input.txt, textarea.txt, select.txt { background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 7px; font: inherit; padding: 7px 9px; }
+  textarea.txt { width: 100%; min-height: 54px; resize: vertical; }
+  .status { color: var(--muted); font-size: 13.5px; margin-top: 8px; min-height: 1em; }
+  .status.err { color: var(--warn); }
+  .spin { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: sp 0.8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+
+  /* Timeline */
+  .tl { position: relative; margin-top: 8px; }
+  .tl .ttl { font-size: 12.5px; color: var(--muted); margin: 10px 0 4px; display: flex; justify-content: space-between; }
+  .tl .secs { position: relative; height: 40px; border-radius: 6px; overflow: hidden; background: var(--panel2); }
+  .tl .sec { position: absolute; top: 0; bottom: 0; border-right: 2px solid var(--panel); padding: 4px 6px; overflow: hidden; color: #fff; font-size: 12px; font-weight: 600; line-height: 1.15; cursor: default; }
+  .tl .sec small { display: block; font-weight: 400; opacity: .8; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+  .tl svg.curve { display: block; width: 100%; height: 64px; background: var(--panel2); border-radius: 6px; margin-top: 4px; }
+  .tl .lanes { margin-top: 4px; }
+  .tl .lane { display: flex; align-items: center; gap: 6px; height: 13px; margin-bottom: 2px; }
+  .tl .lane .ln { width: 92px; flex: none; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tl .lane svg { flex: 1; height: 11px; display: block; }
+  .tl .ruler { position: relative; height: 16px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+  .tl .ruler span { position: absolute; transform: translateX(-1px); border-left: 1px solid var(--line); padding-left: 3px; height: 16px; }
+  .tl .hl { position: absolute; top: 0; bottom: 0; background: rgba(255,181,71,.18); border: 1.5px solid var(--accent); border-radius: 4px; pointer-events: none; display: none; }
+  .tl .stage { position: relative; }
+  .lane-pad { padding-left: 98px; }
+
+  /* Findings */
+  .finding { display: flex; gap: 10px; padding: 10px 12px; border-radius: 8px; background: var(--panel2); margin-bottom: 7px; border-left: 3px solid var(--line); }
+  .finding.warn { border-left-color: var(--warn); }
+  .finding.info { border-left-color: var(--info); }
+  .finding.good { border-left-color: var(--good); }
+  .finding .ic { flex: none; font-weight: 700; width: 18px; text-align: center; }
+  .finding.warn .ic { color: var(--warn); } .finding.info .ic { color: var(--info); } .finding.good .ic { color: var(--good); }
+  .finding b { display: block; }
+  .finding p { margin: 2px 0 0; color: #c3cad3; font-size: 14px; }
+  .finding.click { cursor: pointer; }
+  .finding.click:hover { background: #232a31; }
+
+  table.cmp { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.cmp th, table.cmp td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  table.cmp th { color: var(--muted); font-weight: 500; font-size: 12.5px; }
+  table.cmp td.num { white-space: nowrap; }
+
+  /* Plan */
+  .plan-sec { background: var(--panel2); border-radius: 9px; margin-bottom: 8px; border-left: 4px solid var(--groove); }
+  .plan-sec .hd { display: flex; align-items: center; gap: 8px; padding: 9px 10px; flex-wrap: wrap; }
+  .plan-sec .hd input.lbl { font-weight: 700; width: 150px; }
+  .plan-sec .hd .pos { color: var(--muted); font-size: 12.5px; }
+  .plan-sec .hd .grow { flex: 1; }
+  .stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+  .stepper button { background: var(--bg); border: 0; color: var(--text); font: inherit; width: 30px; height: 30px; cursor: pointer; }
+  .stepper span { padding: 0 8px; font-family: 'JetBrains Mono', monospace; font-size: 13px; min-width: 70px; text-align: center; }
+  .plan-sec .bd { padding: 0 10px 10px; }
+  .todo { display: flex; gap: 8px; align-items: flex-start; margin: 5px 0; }
+  .todo input[type=checkbox] { margin-top: 9px; width: 17px; height: 17px; accent-color: var(--accent); flex: none; }
+  .todo textarea { flex: 1; min-height: 36px; font-size: 14px; }
+  .todo.done textarea { opacity: .5; text-decoration: line-through; }
+  .todo .x { flex: none; }
+  .idea { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; margin: 6px 0; }
+  .idea b { display: block; }
+  .idea p { margin: 3px 0 7px; color: #c3cad3; font-size: 14px; }
+  .idea .tk { color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .chip { display: inline-block; font-size: 11.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 20px; padding: 1px 8px; margin: 2px 4px 2px 0; }
+  .claude-box { border: 1px solid #3a3020; background: linear-gradient(180deg, rgba(255,181,71,.07), rgba(255,181,71,.02)); }
+  .prio li { margin-bottom: 4px; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+  .modal.on { display: flex; }
+  .modal .box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; max-width: 720px; width: 100%; }
+  .modal textarea { width: 100%; height: 50vh; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+  .muted { color: var(--muted); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 760px) { .two { grid-template-columns: 1fr; } .plan-sec .hd input.lbl { width: 120px; } .tl .lane .ln { width: 70px; } .lane-pad { padding-left: 76px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Arrangement-<span>Werkstatt</span></h1>
+  <p>Referenz analysieren, dein Ableton-Projekt checken, einen Plan bauen. Liest nur, schreibt nie in dein Projekt.</p>
+</header>
+<nav class="tabs"><div class="in">
+  <button data-v="ref" class="on"><i class="dot" id="dot-ref"></i>1 · Referenz</button>
+  <button data-v="proj"><i class="dot" id="dot-proj"></i>2 · Projekt-Check</button>
+  <button data-v="cmp">3 · Vergleich</button>
+  <button data-v="plan"><i class="dot" id="dot-plan"></i>4 · Plan &amp; Vorschläge</button>
+</div></nav>
+<main>
+  <!-- Referenz -->
+  <section class="view on" id="v-ref">
+    <div class="card">
+      <h2>Referenz-Track</h2>
+      <p class="sub">Ein Track, dessen Aufbau du magst (MP3, WAV, AIFF, M4A). Die Datei bleibt auf deinem Gerät.</p>
+      <label class="drop" id="drop-ref"><strong>Audio-Datei wählen oder hierher ziehen</strong>Tempo, Abschnitte und Energieverlauf werden erkannt<input type="file" id="in-ref" accept="audio/*,.mp3,.wav,.aif,.aiff,.m4a,.flac"></label>
+      <div class="row" style="margin-top:10px">
+        <label class="muted" for="ref-bpm">BPM korrigieren (optional):</label>
+        <input class="txt num" id="ref-bpm" type="number" inputmode="decimal" step="0.01" min="60" max="200" placeholder="auto" style="width:100px">
+        <button class="btn small" id="ref-reanalyze" disabled>Neu analysieren</button>
+      </div>
+      <div class="status" id="st-ref"></div>
+    </div>
+    <div id="ref-out"></div>
+  </section>
+
+  <!-- Projekt -->
+  <section class="view" id="v-proj">
+    <div class="card">
+      <h2>Ableton-Projekt</h2>
+      <p class="sub">Deine <span class="mono">.als</span>-Datei (oder eine umbenannte <span class="mono">.gz</span>). Gelesen werden nur Spuren, Clips, Noten und Automation, kein Audio.</p>
+      <label class="drop" id="drop-proj"><strong>.als-Datei wählen oder hierher ziehen</strong>Live 10, 11 oder 12<input type="file" id="in-proj"></label>
+      <div class="status" id="st-proj"></div>
+    </div>
+    <div id="proj-out"></div>
+  </section>
+
+  <!-- Vergleich -->
+  <section class="view" id="v-cmp"><div id="cmp-out"></div></section>
+
+  <!-- Plan -->
+  <section class="view" id="v-plan">
+    <div class="card">
+      <h2>Arrangement-Plan</h2>
+      <p class="sub">Dein Bauplan für die Überarbeitung. Abschnitte umbenennen, verlängern, verschieben, To-dos sammeln. Umsetzen tust du selbst in Live.</p>
+      <div class="row">
+        <button class="btn" data-src="proj">Aus meinem Projekt</button>
+        <button class="btn" data-src="ref">Aus der Referenz</button>
+        <button class="btn" data-src="tpl">Hard-House-Vorlage</button>
+        <span class="muted" id="plan-src-note" style="font-size:13px"></span>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="muted" for="plan-bpm">Tempo des Plans:</label>
+        <input class="txt num" id="plan-bpm" type="number" inputmode="decimal" step="1" min="60" max="200" style="width:90px">
+        <span class="muted">BPM</span>
+      </div>
+      <div id="plan-tl"></div>
+    </div>
+    <div id="plan-list"></div>
+    <div class="row" style="margin-bottom:14px">
+      <button class="btn" id="plan-add">+ Abschnitt</button>
+      <button class="btn" id="plan-checks">Checks als To-dos übernehmen</button>
+      <button class="btn" id="plan-copy">Plan kopieren</button>
+      <button class="btn danger" id="plan-clear">Plan leeren</button>
+    </div>
+    <div class="card" id="general-card" style="display:none">
+      <h3>Allgemeine To-dos</h3>
+      <div id="general-list"></div>
+    </div>
+
+    <div class="card claude-box">
+      <h2 id="ai-title">Inhaltliche Vorschläge von Claude</h2>
+      <p class="sub">Die KI bekommt die Struktur: Plan, Spuren, Checks und die Referenz. Hören kann sie den Track nicht. Vorschläge landen erst in deinem Plan, wenn du sie übernimmst.</p>
+      <div class="row" style="margin-bottom:8px">
+        <label class="muted" for="genre">Genre:</label>
+        <input class="txt" id="genre" style="flex:1;min-width:180px" value="Hard House / Groove">
+      </div>
+      <textarea class="txt" id="wish" placeholder="Worauf soll Claude achten? z. B. „Zweiter Drop soll härter werden“, „Breakdown wirkt leer“ (optional)"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="ask-claude">Vorschläge holen</button>
+        <button class="btn" id="copy-prompt">Prompt kopieren</button>
+        <span class="status" id="st-claude" style="margin:0"></span>
+      </div>
+      <details id="paste-box" style="margin-top:12px">
+        <summary class="muted" style="cursor:pointer">Antwort einer anderen KI einfügen</summary>
+        <p class="sub" style="margin-top:8px">1. „Prompt kopieren“ antippen · 2. in ChatGPT, Claude, Gemini o. ä. einfügen · 3. die komplette Antwort hier einfügen.</p>
+        <textarea class="txt" id="paste-answer" placeholder='{"gesamt": "...", "prioritaeten": [...], "abschnitte": [...]}' style="min-height:90px"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn" id="paste-apply">Antwort übernehmen</button></div>
+      </details>
+      <div id="ideas-out"></div>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="modal"><div class="box">
+  <h3 id="modal-title">Text</h3>
+  <p class="sub" id="modal-sub">Kopieren ging nicht automatisch: Text markieren und kopieren.</p>
+  <textarea class="txt" id="modal-text" readonly></textarea>
+  <div class="row" style="margin-top:10px;justify-content:flex-end"><button class="btn" id="modal-close">Schließen</button></div>
+</div></div>
+
+<script>/* Arrangement-Werkstatt – Kernlogik (ohne UI). Läuft im Browser und in Node. */
+(function (root) {
+  'use strict';
+
+  // ---------- XML-Helfer (nur DOM-Level-2, damit es auch mit xmldom läuft) ----------
+  function kids(el, tag) {
+    const out = [];
+    if (!el) return out;
+    for (let n = el.firstChild; n; n = n.nextSibling) {
+      if (n.nodeType === 1 && (!tag || n.tagName === tag)) out.push(n);
+    }
+    return out;
+  }
+  function child(el, path) {
+    let cur = el;
+    for (const p of path.split('/')) {
+      if (!cur) return null;
+      cur = kids(cur, p)[0] || null;
+    }
+    return cur;
+  }
+  function val(el, path, def) {
+    const c = path ? child(el, path) : el;
+    if (!c) return def;
+    const v = c.getAttribute('Value');
+    return v == null ? def : v;
+  }
+  function num(el, path, def) {
+    const v = val(el, path, null);
+    if (v == null) return def;
+    const f = parseFloat(v);
+    return isNaN(f) ? def : f;
+  }
+
+  // ---------- Kategorien ----------
+  const CATS = {
+    kick: { name: 'Kick', weight: 3, color: '#ff5d5d' },
+    bass: { name: 'Bass', weight: 2.5, color: '#ff9f43' },
+    drums: { name: 'Drums/Perc', weight: 1, color: '#f6d743' },
+    chords: { name: 'Akkorde/Pads', weight: 1.5, color: '#4cd9a6' },
+    lead: { name: 'Lead/Melodie', weight: 1.5, color: '#4fa3ff' },
+    vocal: { name: 'Vocals', weight: 1.5, color: '#c27bff' },
+    fx: { name: 'FX', weight: 0.75, color: '#9aa4b2' },
+    other: { name: 'Sonstiges', weight: 1, color: '#7c8796' }
+  };
+  const CAT_RULES = [
+    ['kick', /kick|\bbd\b|bassdrum/i],
+    ['fx', /\bfx\b|riser|sweep|noise|impact|uplift|downlift|whoosh|reverse/i],
+    ['bass', /bass|808|\bsub\b|reese/i],
+    ['vocal', /vox|vocal|\bvoc\b|acapella|chant|shout/i],
+    ['drums', /hat|\bhh\b|clap|snare|perc|drum|\btop|ride|crash|cymbal|shaker|\btom|\bxo\b|break|rim|conga|bongo/i],
+    ['chords', /chord|pad|stab|organ|piano|keys|string/i],
+    ['lead', /lead|melod|synth|arp|pluck|hoover|sample|hook|bell/i]
+  ];
+  function catFromName(name) {
+    for (const [c, re] of CAT_RULES) if (re.test(name)) return c;
+    return null;
+  }
+
+  // ---------- Ableton-Projekt (.als) ----------
+  function parseNotes(clip) {
+    const notes = [];
+    const kts = child(clip, 'Notes/KeyTracks');
+    for (const kt of kids(kts, 'KeyTrack')) {
+      const key = num(kt, 'MidiKey', null);
+      for (const ev of kids(child(kt, 'Notes'), 'MidiNoteEvent')) {
+        if (ev.getAttribute('IsEnabled') === 'false') continue;
+        notes.push({
+          p: key,
+          t: parseFloat(ev.getAttribute('Time')),
+          d: parseFloat(ev.getAttribute('Duration')),
+          v: parseFloat(ev.getAttribute('Velocity'))
+        });
+      }
+    }
+    return notes;
+  }
+
+  function hashStr(s) {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return (h >>> 0).toString(36);
+  }
+
+  function envelopeTimes(envParent) {
+    // liefert pro Hüllkurve die echten Event-Zeiten (Beats); Default-Event (-63072000) wird ignoriert
+    const res = [];
+    for (const env of kids(envParent, 'AutomationEnvelope').concat(kids(envParent, 'ClipEnvelope'))) {
+      const evs = child(env, 'Automation/Events');
+      const times = [];
+      const vals = [];
+      for (const e of kids(evs)) {
+        const t = parseFloat(e.getAttribute('Time'));
+        if (t > -1000) { times.push(t); vals.push(parseFloat(e.getAttribute('Value'))); }
+      }
+      // nur Hüllkurven, deren Wert sich wirklich ändert
+      let moves = false;
+      for (let i = 1; i < vals.length; i++) if (vals[i] !== vals[0]) { moves = true; break; }
+      if (moves) res.push(times);
+    }
+    return res;
+  }
+
+  function parseAls(doc) {
+    const rootEl = doc.documentElement;
+    const ls = child(rootEl, 'LiveSet');
+    if (!ls) throw new Error('Keine Ableton-Live-Set-Datei (LiveSet fehlt).');
+    const master = child(ls, 'MasterTrack') || child(ls, 'MainTrack');
+    const tempo = num(master, 'DeviceChain/Mixer/Tempo/Manual', 120);
+    let numerator = 4;
+    const ts = ls.getElementsByTagName('RemoteableTimeSignature')[0];
+    if (ts) numerator = num(ts, 'Numerator', 4) || 4;
+
+    const tracksEl = child(ls, 'Tracks');
+    const tracks = [];
+    const byId = {};
+    for (const tr of kids(tracksEl)) {
+      const type = tr.tagName;
+      if (!/^(MidiTrack|AudioTrack|GroupTrack)$/.test(type)) continue;
+      const t = {
+        id: tr.getAttribute('Id'),
+        type: type === 'MidiTrack' ? 'midi' : type === 'AudioTrack' ? 'audio' : 'group',
+        name: val(tr, 'Name/EffectiveName', '') || val(tr, 'Name/UserName', '') || type,
+        groupId: val(tr, 'TrackGroupId', '-1'),
+        mutedSelf: val(tr, 'DeviceChain/Mixer/Speaker/Manual', 'true') === 'false',
+        clips: [],
+        sessionClips: 0,
+        envTimes: envelopeTimes(child(tr, 'AutomationEnvelopes/Envelopes'))
+      };
+      const ms = child(tr, 'DeviceChain/MainSequencer');
+      if (ms && t.type !== 'group') {
+        const evs = t.type === 'midi'
+          ? child(ms, 'ClipTimeable/ArrangerAutomation/Events')
+          : child(ms, 'Sample/ArrangerAutomation/Events');
+        for (const c of kids(evs)) {
+          if (c.tagName !== 'MidiClip' && c.tagName !== 'AudioClip') continue;
+          const start = parseFloat(c.getAttribute('Time'));
+          const cs = num(c, 'CurrentStart', start);
+          const ce = num(c, 'CurrentEnd', start);
+          const clip = {
+            start,
+            end: start + (ce - cs),
+            name: val(c, 'Name', ''),
+            disabled: val(c, 'Disabled', 'false') === 'true',
+            hasEnv: envelopeTimes(child(c, 'Envelopes/Envelopes')).length > 0
+          };
+          if (c.tagName === 'MidiClip') {
+            const loopOn = val(c, 'Loop/LoopOn', 'false') === 'true';
+            const ls0 = num(c, 'Loop/LoopStart', 0);
+            const le0 = num(c, 'Loop/LoopEnd', ce - cs);
+            const notes = parseNotes(c);
+            const win = notes.filter(n => n.t >= ls0 - 1e-6 && n.t < le0 - 1e-6);
+            const loopLen = Math.max(0.25, le0 - ls0);
+            const len = clip.end - clip.start;
+            clip.noteCount = loopOn ? win.length * (len / loopLen) : notes.filter(n => n.t < ls0 + len).length;
+            clip.pitches = win.map(n => n.p);
+            clip.notes = win.map(n => ({ p: n.p, t: n.t - ls0, d: n.d }));
+            clip.sig = hashStr(win.map(n => n.p + ':' + (n.t - ls0).toFixed(3) + ':' + n.d.toFixed(3)).sort().join('|') + '#' + loopLen.toFixed(2));
+          }
+          t.clips.push(clip);
+        }
+        const slots = child(ms, 'ClipSlotList');
+        if (slots) t.sessionClips = slots.getElementsByTagName('MidiClip').length + slots.getElementsByTagName('AudioClip').length;
+      }
+      tracks.push(t);
+      byId[t.id] = t;
+    }
+    // Gruppen auflösen
+    for (const t of tracks) {
+      let g = byId[t.groupId];
+      t.groupName = g ? g.name : '';
+      t.muted = t.mutedSelf;
+      while (g) { if (g.mutedSelf) t.muted = true; g = byId[g.groupId]; }
+    }
+    // Kategorien
+    for (const t of tracks) {
+      if (t.type === 'group') continue;
+      let c = catFromName(t.name);
+      if (!c && t.groupName) c = catFromName(t.groupName);
+      if (!c && t.type === 'midi') {
+        const ps = [].concat(...t.clips.map(k => k.pitches || []));
+        if (ps.length) { ps.sort((a, b) => a - b); c = ps[ps.length >> 1] < 48 ? 'bass' : 'lead'; }
+      }
+      t.cat = c || 'other';
+    }
+    // Locators
+    const locators = [];
+    const locs = child(ls, 'Locators/Locators');
+    for (const l of kids(locs, 'Locator')) locators.push({ beat: num(l, 'Time', 0), name: val(l, 'Name', '') });
+
+    return {
+      creator: rootEl.getAttribute('Creator') || '',
+      tempo, numerator, tracks, locators
+    };
+  }
+
+  // ---------- Projekt-Analyse: Takt-Raster, Abschnitte, Checks ----------
+  function analyzeProject(p) {
+    const beatsPerBar = p.numerator;
+    const playTracks = p.tracks.filter(t => t.type !== 'group' && !t.muted && t.clips.some(c => !c.disabled));
+    let endBeat = 0;
+    for (const t of playTracks) for (const c of t.clips) if (!c.disabled) endBeat = Math.max(endBeat, c.end);
+    const nBars = Math.max(1, Math.ceil(endBeat / beatsPerBar - 1e-6));
+    // Abdeckung pro Spur und Takt
+    for (const t of playTracks) {
+      t.cov = new Float32Array(nBars);
+      for (const c of t.clips) {
+        if (c.disabled) continue;
+        for (let b = Math.floor(c.start / beatsPerBar); b < nBars && b * beatsPerBar < c.end; b++) {
+          const s = Math.max(c.start, b * beatsPerBar), e = Math.min(c.end, (b + 1) * beatsPerBar);
+          if (e > s) t.cov[b] += (e - s) / beatsPerBar;
+        }
+      }
+      for (let b = 0; b < nBars; b++) t.cov[b] = Math.min(1, t.cov[b]);
+    }
+    // Automation pro Takt
+    const autoBars = new Uint8Array(nBars);
+    for (const t of p.tracks) {
+      for (const times of t.envTimes) {
+        for (let i = 1; i < times.length; i++) {
+          for (let b = Math.floor(times[i - 1] / beatsPerBar); b <= Math.floor(times[i] / beatsPerBar) && b < nBars; b++) if (b >= 0) autoBars[b] = 1;
+        }
+      }
+      for (const c of t.clips || []) if (c.hasEnv && !c.disabled) {
+        for (let b = Math.floor(c.start / beatsPerBar); b < nBars && b * beatsPerBar < c.end; b++) autoBars[b] = 1;
+      }
+    }
+    // Energie-Proxy pro Takt
+    const maxW = {};
+    const energyRaw = new Float32Array(nBars);
+    const kickBar = new Float32Array(nBars);
+    const catBars = {};
+    for (const k of Object.keys(CATS)) catBars[k] = new Float32Array(nBars);
+    for (let b = 0; b < nBars; b++) {
+      const perCat = {};
+      for (const t of playTracks) {
+        if (t.cov[b] > 0) perCat[t.cat] = (perCat[t.cat] || 0) + t.cov[b];
+      }
+      let e = 0;
+      for (const k in perCat) {
+        catBars[k][b] = Math.min(1, perCat[k]);
+        // abnehmender Zuwachs bei mehreren Spuren derselben Kategorie
+        e += CATS[k].weight * (1 - Math.pow(0.6, perCat[k])) / 0.4;
+      }
+      energyRaw[b] = e;
+      kickBar[b] = catBars.kick[b];
+    }
+    let emax = 0; for (const e of energyRaw) emax = Math.max(emax, e);
+    const energy = Array.from(energyRaw, e => emax ? e / emax : 0);
+
+    // Abschnitte aus Wechseln der aktiven Spuren
+    const sets = [];
+    for (let b = 0; b < nBars; b++) sets.push(new Set(playTracks.filter(t => t.cov[b] >= 0.5).map(t => t.id)));
+    const jacc = (a, c) => { let i = 0; for (const x of a) if (c.has(x)) i++; const u = a.size + c.size - i; return u ? i / u : 1; };
+    let cuts = [0];
+    const catKey = b => Object.keys(CATS).filter(k => catBars[k][b] >= 0.5).join(',');
+    for (let b = 1; b < nBars; b++) {
+      if (jacc(sets[b - 1], sets[b]) < 0.8 || catKey(b - 1) !== catKey(b) || (kickBar[b - 1] >= 0.5) !== (kickBar[b] >= 0.5)) cuts.push(b);
+    }
+    let segs = cuts.map((s, i) => ({ start: s, end: i + 1 < cuts.length ? cuts[i + 1] : nBars }));
+    // Fills/kurze Stücke (< 4 Takte) an Nachbarn hängen und als Übergang merken
+    const fills = [];
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (let i = 0; i < segs.length; i++) {
+        const s = segs[i];
+        if (s.end - s.start < 4 && segs.length > 1) {
+          fills.push(s.start);
+          // an den ähnlicheren Nachbarn hängen (Kick-Status entscheidet)
+          const kOf = x => avg(kickBar, x.start, x.end - x.start) >= 0.5;
+          const prev = segs[i - 1], next = segs[i + 1];
+          let toPrev = !!prev;
+          if (prev && next) toPrev = kOf(prev) === kOf(s) || kOf(next) !== kOf(s) ? (kOf(prev) === kOf(s)) : false;
+          if (!toPrev && !next) toPrev = true;
+          if (toPrev) prev.end = s.end; else next.start = s.start;
+          segs.splice(i, 1); changed = true; break;
+        }
+      }
+    }
+    const rawSections = labelSections(segs.map(s => sectionStats(s.start, s.end - s.start, energy, kickBar)));
+    const sections = mergeSame(rawSections, energy, kickBar);
+    for (const s of rawSections.concat(sections)) {
+      s.tracks = playTracks.filter(t => avg(t.cov, s.start, s.len) >= 0.4).map(t => t.name);
+      s.cats = Object.keys(CATS).filter(k => avg(catBars[k], s.start, s.len) >= 0.4);
+    }
+
+    const info = {
+      nBars, beatsPerBar, tempo: p.tempo,
+      seconds: nBars * beatsPerBar * 60 / p.tempo,
+      energy, kickBar: Array.from(kickBar), autoBars: Array.from(autoBars), catBars,
+      sections, rawSections, fills: fills.filter((v, i, a) => a.indexOf(v) === i).sort((a, b) => a - b),
+      playTracks, key: estimateKey(p.tracks.filter(t => t.cat !== 'bass' || true))
+    };
+    info.findings = projectChecks(p, info);
+    return info;
+  }
+
+  function mergeSame(secs, energy, kick) {
+    const out = [];
+    for (const s of secs) {
+      const last = out[out.length - 1];
+      if (last && last.label === s.label) {
+        const m = sectionStats(last.start, last.len + s.len, energy, kick); m.label = s.label; out[out.length - 1] = m;
+      } else out.push(Object.assign({}, s));
+    }
+    return out;
+  }
+  function avg(arr, s, len) { let x = 0; for (let i = s; i < s + len && i < arr.length; i++) x += arr[i]; return len ? x / len : 0; }
+  function sectionStats(start, len, energy, kick) {
+    return { start, len, energy: avg(energy, start, len), kick: avg(kick, start, len) };
+  }
+
+  function labelSections(secs) {
+    if (!secs.length) return secs;
+    const emax = Math.max(...secs.map(s => s.energy)) || 1;
+    const n = secs.length;
+    for (let i = 0; i < n; i++) {
+      const s = secs[i]; const rel = s.energy / emax;
+      if (s.kick < 0.5) s.label = i === 0 ? 'Intro' : i === n - 1 ? 'Outro' : 'Breakdown';
+      else if (i === 0 && n > 1) s.label = 'Intro';
+      else if (i === n - 1 && n > 1 && rel < 0.85) s.label = 'Outro';
+      else if (rel >= 0.8 && i > 0 && (secs[i - 1].label === 'Breakdown' || secs[i - 1].label === 'Build' || secs[i - 1].energy / emax < rel - 0.2)) s.label = 'Drop';
+      else s.label = 'Groove';
+    }
+    for (let i = 1; i < n - 1; i++) {
+      if (secs[i + 1].label === 'Drop' && secs[i].label === 'Groove' && secs[i].len <= 16 && secs[i].energy < secs[i + 1].energy) secs[i].label = 'Build';
+    }
+    // Nach dem Intro: wenn ein Drop vor jedem Breakdown kommt, ist es eher Groove
+    let sawBreak = false;
+    for (const s of secs) { if (s.label === 'Breakdown') sawBreak = true; if (s.label === 'Drop' && !sawBreak) s.label = 'Groove'; }
+    // Kurzer „Drop“ (≤ 8 Takte) direkt nach einem Breakdown, dem ein stärkerer Groove folgt: eigentlich Build + Drop
+    for (let i = 1; i < n - 1; i++) {
+      if (secs[i - 1].label === 'Breakdown' && secs[i].label === 'Drop' && secs[i].len <= 8 && secs[i + 1].label === 'Groove' && secs[i + 1].energy > secs[i].energy) { secs[i].label = 'Build'; secs[i + 1].label = 'Drop'; }
+    }
+    return secs;
+  }
+
+  // Tonart-Schätzung (Krumhansl-Profile) aus allen MIDI-Noten
+  const KEYN = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'H'];
+  function estimateKey(tracks) {
+    const pc = new Array(12).fill(0);
+    let total = 0;
+    for (const t of tracks) {
+      if (t.type !== 'midi' || t.muted || t.cat === 'drums' || t.cat === 'kick') continue;
+      for (const c of t.clips) if (!c.disabled && c.notes) for (const n of c.notes) { pc[((n.p % 12) + 12) % 12] += n.d; total++; }
+    }
+    if (total < 8) return null;
+    const maj = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
+    const min = [6.33, 2.68, 3.52, 5.38, 2.6, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
+    const corr = (prof, k) => {
+      const xs = pc.map((_, i) => pc[(i + k) % 12]);
+      const mx = xs.reduce((a, b) => a + b) / 12, my = prof.reduce((a, b) => a + b) / 12;
+      let sxy = 0, sxx = 0, syy = 0;
+      for (let i = 0; i < 12; i++) { sxy += (xs[i] - mx) * (prof[i] - my); sxx += (xs[i] - mx) ** 2; syy += (prof[i] - my) ** 2; }
+      return sxy / Math.sqrt(sxx * syy || 1);
+    };
+    let best = { r: -2 };
+    for (let k = 0; k < 12; k++) {
+      const a = corr(maj, k), b = corr(min, k);
+      if (a > best.r) best = { r: a, name: KEYN[k] + '-Dur' };
+      if (b > best.r) best = { r: b, name: KEYN[k].toLowerCase() + '-Moll' };
+    }
+    return { name: best.name, confidence: best.r };
+  }
+
+  function barToTime(bar, beatsPerBar, bpm) {
+    const s = bar * beatsPerBar * 60 / bpm;
+    return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+  }
+
+  function projectChecks(p, a) {
+    const F = [];
+    const B = a.beatsPerBar, bpm = a.tempo;
+    const T = bar => barToTime(bar, B, bpm);
+    const tb = b => 'Takt ' + (b + 1);
+    const secs = a.sections;
+
+    // 1 Länge
+    const min = a.seconds / 60;
+    if (min < 4.5) F.push({ level: 'warn', title: 'Track ist kurz für einen Club-Track', detail: `${a.nBars} Takte ≈ ${T(a.nBars)} Min. Hard House/Groove liegt im Club meist bei 5–7 Min., damit DJs Platz zum Mixen haben. Meist fehlt ein längeres Intro/Outro und ein zweiter Spannungsbogen.`, bars: null });
+    else F.push({ level: 'good', title: 'Länge passt', detail: `${a.nBars} Takte ≈ ${T(a.nBars)} Min.`, bars: null });
+
+    // 2 Statische Strecken (≥ 16 Takte ohne Wechsel und ohne Automation)
+    for (const s of a.rawSections) {
+      if (s.len >= 16) {
+        // innerhalb des Abschnitts: Fills oder Automation?
+        let autoCount = 0; for (let b = s.start; b < s.start + s.len; b++) autoCount += a.autoBars[b];
+        const fillIn = a.fills.filter(f => f > s.start && f < s.start + s.len).length;
+        if (autoCount < 2 && fillIn === 0) {
+          F.push({ level: s.len >= 24 ? 'warn' : 'info', title: `${s.len} Takte ohne Veränderung`, detail: `${tb(s.start)}–${s.start + s.len} (${s.label}): Dieselben Spuren laufen durchgehend, keine Automation, kein Fill. Spätestens alle 8–16 Takte sollte etwas dazukommen, wegfallen oder sich bewegen (Filter, Hat-Pattern, Fill, Percussion).`, bars: [s.start, s.start + s.len] });
+        }
+      }
+    }
+
+    // 3 Breakdown vorhanden?
+    const hasBreak = secs.some(s => s.label === 'Breakdown');
+    if (!hasBreak) F.push({ level: 'warn', title: 'Kein Breakdown', detail: 'Die Kick fällt nie für längere Zeit weg. Ohne Breakdown fehlt der Moment, in dem Spannung aufgebaut und dann mit dem Drop entladen wird.', bars: null });
+    else {
+      const bks = secs.filter(s => s.label === 'Breakdown');
+      F.push({ level: 'good', title: bks.length === 1 ? 'Breakdown vorhanden' : `${bks.length} Breakdowns`, detail: bks.map(s => `${tb(s.start)}–${s.start + s.len} (${s.len} Takte)`).join(', '), bars: null });
+    }
+
+    // 4 DJ-freundliches Intro/Outro
+    const first = secs[0], last = secs[secs.length - 1];
+    let introKickBars = 0; for (let b = 0; b < Math.min(32, a.nBars); b++) if (a.kickBar[b] >= 0.5) introKickBars++;
+    if (introKickBars < 12) F.push({ level: 'info', title: 'Wenig Kick im Intro', detail: `In den ersten 32 Takten läuft die Kick nur in ${introKickBars} Takten. Zum Reinmixen brauchen DJs meist 16–32 Takte mit klarer Kick und wenig Melodie.`, bars: [0, Math.min(32, a.nBars)] });
+    let outroKick = 0; for (let b = Math.max(0, a.nBars - 16); b < a.nBars; b++) if (a.kickBar[b] >= 0.5) outroKick++;
+    if (outroKick < 8) F.push({ level: 'info', title: 'Kurzes oder kickloses Outro', detail: `In den letzten 16 Takten läuft die Kick nur in ${outroKick} Takten. Ein 16–32 Takte langes Outro mit Kick und reduzierten Elementen macht den Track mixbar.`, bars: [Math.max(0, a.nBars - 16), a.nBars] });
+
+    // 5 Automation
+    const autoTotal = a.autoBars.reduce((x, y) => x + y, 0);
+    const autoTracks = p.tracks.filter(t => t.envTimes.length || t.clips.some(c => c.hasEnv)).map(t => t.name);
+    if (autoTotal < a.nBars * 0.15) F.push({ level: 'warn', title: 'Kaum Automation', detail: `Nur in ${autoTotal} von ${a.nBars} Takten bewegt sich ein Parameter${autoTracks.length ? ' (' + autoTracks.join(', ') + ')' : ''}. Filter-Fahrten, Reverb-Sends, Pitch-Riser und Volume-Rides sind im Hard House das Hauptwerkzeug für Spannung.`, bars: null });
+
+    // 6 Übergangs-Elemente
+    const fxTracks = p.tracks.filter(t => t.cat === 'fx' && t.type !== 'group');
+    const fxUsed = fxTracks.some(t => !t.muted && t.clips.some(c => !c.disabled));
+    if (!fxUsed) F.push({ level: 'warn', title: 'Keine FX/Übergänge', detail: fxTracks.length ? `Es gibt eine FX-Spur (${fxTracks.map(t => t.name).join(', ')}), aber sie ist leer. Riser, Downlifter, Impacts und Reverse-Crashes markieren Abschnittswechsel.` : 'Keine Riser, Impacts oder Sweeps gefunden. Sie markieren Abschnittswechsel und bauen Spannung auf.', bars: null });
+
+    // 7 Vor dem Drop: Spannung?
+    for (let i = 1; i < secs.length; i++) {
+      const s = secs[i];
+      if (s.label !== 'Drop') continue;
+      const pre = s.start;
+      let gap = false;
+      for (let b = Math.max(0, pre - 2); b < pre; b++) if (a.kickBar[b] < 1 && secs[i - 1].label !== 'Breakdown') gap = true;
+      const autoPre = a.autoBars.slice(Math.max(0, pre - 8), pre).reduce((x, y) => x + y, 0);
+      const fillPre = a.fills.some(f => f >= pre - 4 && f <= pre);
+      if (!autoPre && !fillPre && !gap) F.push({ level: 'warn', title: `Drop bei ${tb(pre)} kommt ohne Anlauf`, detail: `In den 8 Takten davor gibt es keine Automation und keinen Fill. Klassisch: 4–8 Takte Snare-Roll oder Riser, ein Filter, der aufgeht, und 1–2 Beats Stille direkt vor dem Drop.`, bars: [Math.max(0, pre - 8), pre] });
+      else F.push({ level: 'good', title: `Drop bei ${tb(pre)} hat einen Anlauf`, detail: [autoPre ? 'Automation' : '', fillPre ? 'Fill' : '', gap ? 'Lücke' : ''].filter(Boolean).join(', ') + ' vor dem Drop.', bars: [Math.max(0, pre - 8), pre] });
+    }
+    const drops = secs.filter(s => s.label === 'Drop');
+    if (drops.length >= 2) {
+      const a1 = new Set(drops[0].tracks), a2 = new Set(drops[drops.length - 1].tracks);
+      const same = [...a1].length === [...a2].length && [...a1].every(x => a2.has(x));
+      if (same) F.push({ level: 'info', title: 'Zweiter Drop = erster Drop', detail: 'Beide Drops nutzen exakt dieselben Spuren. Der zweite Drop sollte eine Steigerung sein: neues Element, Variation der Bassline/Hook oder ein Layer mehr.', bars: [drops[drops.length - 1].start, drops[drops.length - 1].start + drops[drops.length - 1].len] });
+    }
+
+    // 8 MIDI-Wiederholung
+    for (const t of a.playTracks) {
+      if (t.type !== 'midi') continue;
+      const cl = t.clips.filter(c => !c.disabled && c.sig && (c.end - c.start) >= B);
+      if (cl.length < 3) continue;
+      const sigs = new Set(cl.map(c => c.sig));
+      const bars = cl.reduce((x, c) => x + (c.end - c.start) / B, 0);
+      if (sigs.size === 1 && bars >= 32) F.push({ level: 'info', title: `„${t.name}“ wiederholt immer dasselbe Pattern`, detail: `${cl.length} Clips, ${Math.round(bars)} Takte, identischer Inhalt. Eine Variation (andere Umkehrung, Rhythmus-Änderung, letzte Phrase vor dem Wechsel anders) hält das Ohr wach.`, bars: null });
+    }
+
+    // 9 Phrasierung
+    const odd = [];
+    for (const t of a.playTracks) {
+      const firstClip = t.clips.filter(c => !c.disabled).sort((x, y) => x.start - y.start)[0];
+      if (!firstClip) continue;
+      const bar = firstClip.start / B;
+      if (Math.abs(bar - Math.round(bar)) > 1e-3 || Math.round(bar) % 4 !== 0) odd.push(`${t.name} (${tb(Math.floor(bar))})`);
+    }
+    if (odd.length) F.push({ level: 'info', title: 'Einsätze außerhalb des 4-Takt-Rasters', detail: 'Diese Spuren steigen nicht auf einem 4er-/8er-Takt ein: ' + odd.join(', ') + '. Im Club wird in 8er-Phrasen gedacht. Bewusste Ausnahmen sind okay.', bars: null });
+
+    // 9b Abschnittswechsel außerhalb des Rasters
+    const offGrid = secs.filter((s, i) => i > 0 && s.start % 4 !== 0);
+    if (offGrid.length) F.push({ level: 'warn', title: 'Abschnitte starten neben dem 8er-Raster', detail: offGrid.map(s => `${s.label} beginnt bei ${tb(s.start)} (8er-Punkte daneben: Takt ${Math.floor(s.start / 8) * 8 + 1} oder ${Math.ceil(s.start / 8) * 8 + 1})`).join('; ') + '. DJs und Tänzer erwarten Wechsel auf Takt 1, 9, 17, 25 … Wenn der Wechsel 2 Takte daneben liegt, fühlt sich der Drop „zu früh“ oder „zu spät“ an.', bars: null });
+
+    // 10 Leere / ungenutzte Spuren
+    const empty = p.tracks.filter(t => t.type !== 'group' && !t.clips.length).map(t => t.name);
+    if (empty.length) F.push({ level: 'info', title: 'Leere Spuren', detail: empty.join(', ') + '. Aufräumen oder bewusst als Idee für ein neues Element nutzen.', bars: null });
+    const sess = p.tracks.filter(t => t.sessionClips > 0 && !t.clips.length).map(t => t.name);
+    if (sess.length) F.push({ level: 'info', title: 'Ideen nur in der Session-Ansicht', detail: 'Diese Spuren haben Clips nur in der Session-Ansicht, nicht im Arrangement: ' + sess.join(', '), bars: null });
+
+    const order = { warn: 0, info: 1, good: 2 };
+    F.sort((x, y) => order[x.level] - order[y.level]);
+    return F;
+  }
+
+  // ---------- Audio-Analyse (Referenz-Track) ----------
+  function downsample(x, sr, target) {
+    const f = Math.max(1, Math.round(sr / target));
+    const n = Math.floor(x.length / f);
+    const y = new Float32Array(n);
+    for (let i = 0; i < n; i++) { let s = 0; for (let j = 0; j < f; j++) s += x[i * f + j]; y[i] = s / f; }
+    return { x: y, sr: sr / f };
+  }
+  function biquad(x, sr, type, f0, q) {
+    q = q || 0.707;
+    const w = 2 * Math.PI * f0 / sr, cw = Math.cos(w), al = Math.sin(w) / (2 * q);
+    let b0, b1, b2;
+    if (type === 'lowpass') { b0 = (1 - cw) / 2; b1 = 1 - cw; b2 = (1 - cw) / 2; }
+    else { b0 = (1 + cw) / 2; b1 = -(1 + cw); b2 = (1 + cw) / 2; }
+    const a0 = 1 + al, a1 = -2 * cw, a2 = 1 - al;
+    const B0 = b0 / a0, B1 = b1 / a0, B2 = b2 / a0, A1 = a1 / a0, A2 = a2 / a0;
+    const y = new Float32Array(x.length);
+    let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+    for (let i = 0; i < x.length; i++) {
+      const v = B0 * x[i] + B1 * x1 + B2 * x2 - A1 * y1 - A2 * y2;
+      x2 = x1; x1 = x[i]; y2 = y1; y1 = v; y[i] = v;
+    }
+    return y;
+  }
+  function frameEnergy(x, hop) {
+    const n = Math.floor(x.length / hop), e = new Float32Array(n);
+    for (let i = 0; i < n; i++) { let s = 0; const o = i * hop; for (let j = 0; j < hop; j++) s += x[o + j] * x[o + j]; e[i] = s / hop; }
+    return e;
+  }
+  function pctl(arr, p) { const a = Array.from(arr).sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.max(0, Math.floor(p * (a.length - 1))))]; }
+  function normP(arr) { const lo = pctl(arr, 0.05), hi = pctl(arr, 0.97); return Array.from(arr, v => Math.max(0, Math.min(1, (v - lo) / ((hi - lo) || 1)))); }
+
+  function analyzeAudio(x0, sr0, opts) {
+    opts = opts || {};
+    const ds = downsample(x0, sr0, 11025);
+    const x = ds.x, sr = ds.sr;
+    const hop = 256, fps = sr / hop;
+    const eF = frameEnergy(x, hop);
+    const eL = frameEnergy(biquad(biquad(x, sr, 'lowpass', 130), sr, 'lowpass', 130), hop);
+    const eH = frameEnergy(biquad(x, sr, 'highpass', 3000), hop);
+    const n = eF.length;
+    const lg = e => Math.log(1 + 1e4 * e);
+    const onL = new Float32Array(n), onF = new Float32Array(n);
+    for (let i = 1; i < n; i++) { onL[i] = Math.max(0, lg(eL[i]) - lg(eL[i - 1])); onF[i] = Math.max(0, lg(eF[i]) - lg(eF[i - 1])); }
+    const on = new Float32Array(n); for (let i = 0; i < n; i++) on[i] = onL[i] + 0.5 * onF[i];
+    const at = (arr, pos) => { const i = Math.floor(pos); if (i < 0 || i + 1 >= arr.length) return 0; const f = pos - i; return arr[i] * (1 - f) + arr[i + 1] * f; };
+
+    // Tempo per Kamm-Suche (105–175 BPM: genau eine Oktave, keine Verdopplungsfehler)
+    function combScore(bpm) {
+      const per = 60 * fps / bpm; let best = -1, bestPh = 0;
+      const steps = 24;
+      for (let k = 0; k < steps; k++) {
+        const ph = per * k / steps; let s = 0, c = 0;
+        for (let pos = ph; pos < n - 1; pos += per) { s += Math.max(at(on, pos - 1), at(on, pos), at(on, pos + 1)); c++; }
+        s /= c || 1;
+        if (s > best) { best = s; bestPh = ph; }
+      }
+      return { score: best, phase: bestPh };
+    }
+    let bpm = opts.bpm, phase = 0;
+    if (!bpm) {
+      let best = { score: -1 };
+      for (let b = 105; b <= 175; b += 0.25) { const r = combScore(b); if (r.score > best.score) best = Object.assign({ bpm: b }, r); }
+      let fine = best;
+      for (let b = best.bpm - 0.3; b <= best.bpm + 0.3; b += 0.02) { const r = combScore(b); if (r.score > fine.score) fine = Object.assign({ bpm: b }, r); }
+      bpm = fine.bpm;
+      // Produzenten nutzen meist ganze BPM
+      if (Math.abs(bpm - Math.round(bpm)) < 0.15) bpm = Math.round(bpm);
+    }
+    phase = combScore(bpm).phase;
+    // Phase feinjustieren
+    const per = 60 * fps / bpm;
+    let bestP = phase, bestS = -1;
+    for (let d = -per / 24; d <= per / 24; d += 0.25) {
+      let s = 0; for (let pos = phase + d; pos < n - 1; pos += per) s += at(onL, pos);
+      if (s > bestS) { bestS = s; bestP = phase + d; }
+    }
+    phase = bestP;
+    while (phase - per >= 0) phase -= per;
+
+    // Beat-Energie, Downbeat wählen
+    const nBeats = Math.floor((n - phase) / per);
+    const beatL = new Float32Array(nBeats), beatK = new Float32Array(nBeats);
+    for (let j = 0; j < nBeats; j++) {
+      const a = Math.floor(phase + j * per), b = Math.floor(phase + (j + 1) * per);
+      let s = 0; for (let i = a; i < b; i++) s += lg(eL[i]); beatL[j] = s / Math.max(1, b - a);
+      beatK[j] = Math.max(at(onL, phase + j * per - 1), at(onL, phase + j * per), at(onL, phase + j * per + 1), at(onL, phase + j * per + 2));
+    }
+    let down = 0, downS = -1;
+    for (let k = 0; k < 4; k++) {
+      let s = 0;
+      for (let j = k + 4; j < nBeats; j += 4) {
+        // Wechsel über 4 Beats (Bar-Ebene) an dieser Position
+        let pre = 0, post = 0; for (let q = 1; q <= 4; q++) { pre += beatL[j - q]; post += (beatL[j + q - 1] || 0); }
+        s += Math.abs(post - pre);
+      }
+      if (s > downS) { downS = s; down = k; }
+    }
+    // Takte
+    const bars = [];
+    const firstBeat = down;
+    const startFrame = phase + firstBeat * per;
+    // Takte vor dem ersten Downbeat (Auftakt) ignorieren wir, Zeit wird mitgeführt
+    for (let j = firstBeat; j + 4 <= nBeats; j += 4) {
+      const a = Math.floor(phase + j * per), b = Math.floor(phase + (j + 4) * per);
+      let f = 0, l = 0, h = 0;
+      for (let i = a; i < b; i++) { f += eF[i]; l += eL[i]; h += eH[i]; }
+      const m = Math.max(1, b - a);
+      let k = 0; for (let q = 0; q < 4; q++) k += beatK[j + q];
+      bars.push({ t: a / fps, rms: lg(f / m), low: lg(l / m), high: lg(h / m), kickRaw: k / 4 });
+    }
+    const rN = normP(bars.map(b => b.rms)), lN = normP(bars.map(b => b.low)), hN = normP(bars.map(b => b.high));
+    const k90 = pctl(bars.map(b => b.kickRaw), 0.9) || 1;
+    bars.forEach((b, i) => {
+      b.rmsN = rN[i]; b.lowN = lN[i]; b.highN = hN[i];
+      b.kick = Math.min(1, b.kickRaw / k90);
+      b.kickOn = b.kick > 0.45 && b.lowN > 0.25 ? 1 : 0;
+      b.energy = 0.35 * b.rmsN + 0.25 * b.lowN + 0.2 * b.highN + 0.2 * b.kickOn;
+    });
+    // Glätten des Kick-Flags (Einzeltakt-Ausreißer)
+    for (let i = 1; i < bars.length - 1; i++) {
+      if (bars[i - 1].kickOn === bars[i + 1].kickOn && bars[i].kickOn !== bars[i - 1].kickOn) bars[i].kickSmooth = bars[i - 1].kickOn; else bars[i].kickSmooth = bars[i].kickOn;
+    }
+    if (bars.length) { bars[0].kickSmooth = bars[0].kickOn; bars[bars.length - 1].kickSmooth = bars[bars.length - 1].kickOn; }
+
+    // Musikbeginn: erster Takt mit nennenswerter Energie
+    let m0 = 0; while (m0 < bars.length - 1 && bars[m0].rmsN < 0.08) m0++;
+
+    // Neuheitskurve und Abschnittsgrenzen
+    const feat = bars.map(b => [b.rmsN, b.lowN, b.highN, b.kickSmooth]);
+    const W = 4, nov = new Float32Array(bars.length);
+    for (let i = W; i <= bars.length - W; i++) {
+      let d = 0;
+      for (let k = 0; k < 4; k++) { let p1 = 0, p2 = 0; for (let q = 0; q < W; q++) { p1 += feat[i - 1 - q][k]; p2 += feat[i + q][k]; } d += ((p2 - p1) / W) ** 2; }
+      nov[i] = Math.sqrt(d);
+    }
+    const nArr = Array.from(nov).filter(v => v > 0);
+    const thr = nArr.length ? (nArr.reduce((a, b) => a + b, 0) / nArr.length) + 0.6 * Math.sqrt(nArr.reduce((a, b) => a + b * b, 0) / nArr.length - (nArr.reduce((a, b) => a + b, 0) / nArr.length) ** 2) : 1;
+    let cand = [];
+    for (let i = W; i <= bars.length - W; i++) {
+      // auf 4er-Raster relativ zum Musikbeginn einrasten
+      if ((i - m0) % 4 !== 0) continue;
+      const v = Math.max(nov[i - 1] || 0, nov[i], nov[i + 1] || 0);
+      if (v > thr) cand.push({ i, v });
+    }
+    // 8er bevorzugen, Mindestabstand 8 Takte
+    cand.forEach(c => { if ((c.i - m0) % 8 === 0) c.v *= 1.25; });
+    cand.sort((a, b) => b.v - a.v);
+    const cuts = [];
+    for (const c of cand) if (cuts.every(x => Math.abs(x - c.i) >= 8) && c.i - m0 >= 8 && bars.length - c.i >= 8) cuts.push(c.i);
+    cuts.push(m0); cuts.sort((a, b) => a - b);
+    const energyArr = bars.map(b => b.energy), kickArr = bars.map(b => b.kickSmooth);
+    const sections = mergeSame(labelSections(cuts.map((s, i) => sectionStats(s, (i + 1 < cuts.length ? cuts[i + 1] : bars.length) - s, energyArr, kickArr))), energyArr, kickArr);
+    return {
+      bpm: Math.round(bpm * 100) / 100,
+      duration: x.length / sr,
+      firstBarTime: startFrame / fps,
+      musicStartBar: m0,
+      bars: bars.map(b => ({ t: b.t, energy: b.energy, kick: b.kickSmooth, low: b.lowN, high: b.highN, rms: b.rmsN })),
+      sections
+    };
+  }
+
+  root.Core = { parseAls, analyzeProject, analyzeAudio, labelSections, estimateKey, barToTime, CATS };
+  if (typeof module !== 'undefined') module.exports = root.Core;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+(function () {
+  'use strict';
+  const C = window.Core;
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const uid = () => Math.random().toString(36).slice(2, 9);
+  const LABEL_COL = { intro: 'var(--intro)', groove: 'var(--groove)', build: 'var(--build)', breakdown: 'var(--breakdown)', drop: 'var(--drop)', outro: 'var(--outro)' };
+  function labelColor(l) {
+    const k = String(l || '').toLowerCase();
+    for (const key in LABEL_COL) if (k.indexOf(key) >= 0) return LABEL_COL[key];
+    if (/break|bridge/.test(k)) return LABEL_COL.breakdown;
+    if (/riser|anlauf|aufbau/.test(k)) return LABEL_COL.build;
+    let h = 0; for (const ch of k) h = (h * 31 + ch.charCodeAt(0)) % 360;
+    return `hsl(${h},45%,45%)`;
+  }
+  const fmtTime = sec => Math.floor(sec / 60) + ':' + String(Math.floor(sec % 60)).padStart(2, '0');
+  const barsToSec = (bars, bpm, bpb) => bars * (bpb || 4) * 60 / bpm;
+
+  // ---------- Zustand ----------
+  const KEY = 'arrangement-werkstatt-v1';
+  let S = { ref: null, proj: null, plan: [], planBpm: null, planSrc: '', general: [], ideas: null, genre: 'Hard House / Groove', wish: '' };
+  try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) { }
+  let saveT = null;
+  function save() {
+    clearTimeout(saveT);
+    saveT = setTimeout(() => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } }, 250);
+  }
+
+  window.addEventListener('pagehide', () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { } });
+
+  // ---------- Tabs ----------
+  function showView(v) {
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+    document.querySelectorAll('section.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
+    if (v === 'cmp') renderCompare();
+    if (v === 'plan') renderPlan();
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => showView(b.dataset.v)));
+  function dots() {
+    $('#dot-ref').classList.toggle('ok', !!S.ref);
+    $('#dot-proj').classList.toggle('ok', !!S.proj);
+    $('#dot-plan').classList.toggle('ok', S.plan.length > 0);
+  }
+
+  // ---------- Datei-Eingänge ----------
+  function wireDrop(labelSel, inputSel, handler) {
+    const lab = $(labelSel), inp = $(inputSel);
+    inp.addEventListener('change', () => { if (inp.files[0]) handler(inp.files[0]); inp.value = ''; });
+    lab.addEventListener('dragover', e => { e.preventDefault(); lab.classList.add('over'); });
+    lab.addEventListener('dragleave', () => lab.classList.remove('over'));
+    lab.addEventListener('drop', e => { e.preventDefault(); lab.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) handler(f); });
+  }
+  function status(sel, html, err) { const el = $(sel); el.innerHTML = html; el.classList.toggle('err', !!err); }
+  const tick = () => new Promise(r => setTimeout(r, 30));
+
+  // ---------- Referenz ----------
+  let refPcm = null; // {x, sr, name}
+  async function decodeAudio(file) {
+    const buf = await file.arrayBuffer();
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AC();
+    try {
+      const ab = await new Promise((res, rej) => {
+        const p = ctx.decodeAudioData(buf, res, rej);
+        if (p && p.then) p.then(res, rej);
+      });
+      const n = ab.length, ch = ab.numberOfChannels, x = new Float32Array(n);
+      for (let c = 0; c < ch; c++) { const d = ab.getChannelData(c); for (let i = 0; i < n; i++) x[i] += d[i] / ch; }
+      return { x, sr: ab.sampleRate };
+    } finally { try { ctx.close(); } catch (e) { } }
+  }
+  async function handleRef(file) {
+    status('#st-ref', '<i class="spin"></i>Lade und dekodiere „' + esc(file.name) + '“ …');
+    await tick();
+    try {
+      const pcm = await decodeAudio(file);
+      refPcm = Object.assign(pcm, { name: file.name });
+      $('#ref-reanalyze').disabled = false;
+      await runRef();
+    } catch (e) {
+      status('#st-ref', 'Die Datei konnte nicht gelesen werden. Probier eine MP3 oder WAV. (' + esc(e.message || e) + ')', true);
+    }
+  }
+  async function runRef() {
+    if (!refPcm) return;
+    status('#st-ref', '<i class="spin"></i>Analysiere Tempo und Abschnitte …');
+    await tick();
+    const bpmIn = parseFloat($('#ref-bpm').value);
+    const r = C.analyzeAudio(refPcm.x, refPcm.sr, { bpm: bpmIn > 50 ? bpmIn : null });
+    S.ref = {
+      file: refPcm.name.replace(/\.[^.]+$/, ''), bpm: r.bpm, duration: r.duration, nBars: r.bars.length,
+      sections: r.sections.map(s => ({ start: s.start, len: s.len, label: s.label, energy: +s.energy.toFixed(3), kick: +s.kick.toFixed(2) })),
+      energy: r.bars.map(b => +b.energy.toFixed(3)), kick: r.bars.map(b => b.kick), firstBarTime: r.firstBarTime
+    };
+    save(); dots();
+    status('#st-ref', 'Fertig. Falls das Tempo nicht stimmt, trag oben das richtige BPM ein und analysiere neu.');
+    renderRef();
+  }
+  $('#ref-reanalyze').addEventListener('click', runRef);
+  wireDrop('#drop-ref', '#in-ref', handleRef);
+
+  function renderRef() {
+    const r = S.ref, out = $('#ref-out');
+    if (!r) { out.innerHTML = ''; return; }
+    const secRows = r.sections.map(s => `<tr><td><b style="color:${labelColor(s.label)}">${esc(s.label)}</b></td><td class="num mono">T. ${s.start + 1}–${s.start + s.len}</td><td class="num mono">${s.len} Takte</td><td class="num mono">${fmtTime(r.firstBarTime + barsToSec(s.start, r.bpm))}</td><td>${energyBar(s.energy)}</td></tr>`).join('');
+    out.innerHTML = `<div class="card">
+      <h2>${esc(r.file)}</h2>
+      <div class="stats">
+        <div class="stat"><div class="k">Tempo (erkannt)</div><div class="v">${r.bpm} BPM</div></div>
+        <div class="stat"><div class="k">Länge</div><div class="v">${fmtTime(r.duration)}</div></div>
+        <div class="stat"><div class="k">Takte</div><div class="v">${r.nBars}</div></div>
+        <div class="stat"><div class="k">Abschnitte</div><div class="v">${r.sections.length}</div></div>
+      </div>
+      <div id="ref-tl"></div>
+      <h3 style="margin-top:16px">Aufbau</h3>
+      <table class="cmp"><tr><th>Abschnitt</th><th>Takte</th><th>Länge</th><th>Zeit</th><th>Energie</th></tr>${secRows}</table>
+      <p class="sub" style="margin-top:10px">Die Abschnittsnamen sind automatisch geraten (Kick da oder weg, Energie hoch oder niedrig). Die Grenzen liegen meist genau, die Namen musst du ggf. im Plan anpassen.</p>
+    </div>`;
+    timeline($('#ref-tl'), { nBars: r.nBars, sections: r.sections, energy: r.energy, kick: r.kick, title: 'Referenz' });
+  }
+  function energyBar(e) { return `<span style="display:inline-block;width:80px;height:7px;background:var(--panel2);border-radius:4px;overflow:hidden;vertical-align:middle"><span style="display:block;height:100%;width:${Math.round(e * 100)}%;background:var(--accent)"></span></span>`; }
+
+  // ---------- Projekt ----------
+  async function gunzip(bytes) {
+    if (typeof DecompressionStream !== 'undefined') {
+      const ds = new DecompressionStream('gzip');
+      const stream = new Blob([bytes]).stream().pipeThrough(ds);
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    }
+    if (!window.pako) await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+    return window.pako.ungzip(bytes);
+  }
+  async function handleProj(file) {
+    status('#st-proj', '<i class="spin"></i>Lese „' + esc(file.name) + '“ …');
+    await tick();
+    try {
+      let bytes = new Uint8Array(await file.arrayBuffer());
+      if (bytes[0] === 0x1f && bytes[1] === 0x8b) bytes = await gunzip(bytes);
+      const xml = new TextDecoder('utf-8').decode(bytes);
+      if (xml.indexOf('<Ableton') < 0) throw new Error('Das sieht nicht nach einer Ableton-Projektdatei aus.');
+      status('#st-proj', '<i class="spin"></i>Analysiere Arrangement …');
+      await tick();
+      const doc = new DOMParser().parseFromString(xml, 'application/xml');
+      if (doc.getElementsByTagName('parsererror').length) throw new Error('Die Datei ist beschädigt oder unvollständig.');
+      const p = C.parseAls(doc);
+      const a = C.analyzeProject(p);
+      S.proj = projVM(p, a, file.name.replace(/\.(als|gz|xml)$/i, '').replace(/^[0-9a-f]{8}-/, ''));
+      save(); dots();
+      status('#st-proj', 'Fertig. ' + esc(p.creator));
+      renderProj();
+    } catch (e) {
+      console.error(e);
+      status('#st-proj', esc(e.message || String(e)), true);
+    }
+  }
+  wireDrop('#drop-proj', '#in-proj', handleProj);
+
+  function projVM(p, a, name) {
+    const lanes = {};
+    for (const k in C.CATS) { const arr = Array.from(a.catBars[k]); if (arr.some(v => v > 0)) lanes[k] = arr.map(v => +v.toFixed(2)); }
+    const B = p.numerator;
+    const trackInfo = p.tracks.filter(t => t.type !== 'group').map(t => {
+      const cl = t.clips.filter(c => !c.disabled);
+      return {
+        name: t.name, cat: t.cat, group: t.groupName, muted: t.muted, type: t.type, clips: cl.length,
+        from: cl.length ? Math.floor(Math.min(...cl.map(c => c.start)) / B) : null,
+        to: cl.length ? Math.ceil(Math.max(...cl.map(c => c.end)) / B - 1e-6) : null,
+        auto: t.envTimes.length + t.clips.filter(c => c.hasEnv).length
+      };
+    });
+    const ranges = [];
+    a.autoBars.forEach((v, i) => { if (v) { const r = ranges[ranges.length - 1]; if (r && r[1] === i) r[1] = i + 1; else ranges.push([i, i + 1]); } });
+    return {
+      file: name, tempo: p.tempo, numerator: B, nBars: a.nBars, seconds: a.seconds, key: a.key,
+      sections: a.sections.map(s => ({ start: s.start, len: s.len, label: s.label, energy: +s.energy.toFixed(3), kick: +s.kick.toFixed(2), tracks: s.tracks, cats: s.cats })),
+      findings: a.findings, energy: a.energy.map(e => +e.toFixed(3)), kick: a.kickBar, auto: a.autoBars, autoRanges: ranges,
+      lanes, tracks: trackInfo, fills: a.fills
+    };
+  }
+
+  function renderProj() {
+    const P = S.proj, out = $('#proj-out');
+    if (!P) { out.innerHTML = ''; return; }
+    const used = P.tracks.filter(t => t.clips && !t.muted).length;
+    const icon = { warn: '!', info: 'i', good: '✓' };
+    const fhtml = P.findings.map((f, i) => `<div class="finding ${f.level} ${f.bars ? 'click' : ''}" data-fi="${i}"><div class="ic">${icon[f.level]}</div><div><b>${esc(f.title)}</b><p>${esc(f.detail)}</p></div></div>`).join('');
+    const secRows = P.sections.map(s => `<tr><td><b style="color:${labelColor(s.label)}">${esc(s.label)}</b></td><td class="num mono">T. ${s.start + 1}–${s.start + s.len}</td><td class="num mono">${s.len}</td><td>${s.cats.map(c => `<span class="chip">${esc(C.CATS[c].name)}</span>`).join('')}</td></tr>`).join('');
+    const tracks = P.tracks.map(t => `<tr><td>${esc(t.name)}${t.muted ? ' <span class="chip">stumm</span>' : ''}</td><td><span class="chip" style="border-color:${C.CATS[t.cat].color};color:${C.CATS[t.cat].color}">${esc(C.CATS[t.cat].name)}</span></td><td class="muted">${esc(t.group)}</td><td class="num mono">${t.clips ? 'T. ' + (t.from + 1) + '–' + t.to : '<span class="muted">leer</span>'}</td><td class="num mono">${t.auto || ''}</td></tr>`).join('');
+    out.innerHTML = `<div class="card">
+      <h2>${esc(P.file)}</h2>
+      <div class="stats">
+        <div class="stat"><div class="k">Tempo</div><div class="v">${P.tempo} BPM</div></div>
+        <div class="stat"><div class="k">Länge</div><div class="v">${fmtTime(P.seconds)}</div></div>
+        <div class="stat"><div class="k">Takte</div><div class="v">${P.nBars}</div></div>
+        <div class="stat"><div class="k">Spuren mit Clips</div><div class="v">${used}</div></div>
+        <div class="stat"><div class="k">Tonart (geschätzt)</div><div class="v" style="font-size:14px">${P.key ? esc(P.key.name) : '–'}</div></div>
+      </div>
+      <div id="proj-tl"></div>
+      <div class="legend">${Object.keys(P.lanes).map(k => `<span><i style="background:${C.CATS[k].color}"></i>${esc(C.CATS[k].name)}</span>`).join('')}<span><i style="background:var(--accent)"></i>Automation</span></div>
+    </div>
+    <div class="card"><h2>Checks</h2><p class="sub">Tippe auf einen Punkt mit Taktbereich, um ihn oben in der Zeitleiste zu markieren.</p>${fhtml}</div>
+    <div class="two">
+      <div class="card"><h3>Erkannte Abschnitte</h3><table class="cmp"><tr><th>Abschnitt</th><th>Takte</th><th>Länge</th><th>Elemente</th></tr>${secRows}</table></div>
+      <div class="card"><h3>Spuren</h3><p class="sub">Die Kategorie kommt aus dem Spur- bzw. Gruppennamen.</p><table class="cmp"><tr><th>Spur</th><th>Kategorie</th><th>Gruppe</th><th>Clips</th><th>Autom.</th></tr>${tracks}</table></div>
+    </div>`;
+    const tl = timeline($('#proj-tl'), { nBars: P.nBars, sections: P.sections, energy: P.energy, kick: P.kick, lanes: P.lanes, auto: P.auto, title: 'Dein Arrangement' });
+    out.querySelectorAll('.finding.click').forEach(el => el.addEventListener('click', () => {
+      const f = P.findings[+el.dataset.fi];
+      tl.highlight(f.bars[0], f.bars[1]);
+      $('#proj-tl').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }));
+  }
+
+  // ---------- Zeitleiste ----------
+  function timeline(el, o) {
+    const maxBars = o.maxBars || o.nBars;
+    const pct = b => (b / maxBars * 100) + '%';
+    const lanePad = o.lanes ? ' lane-pad' : '';
+    let rulerStep = maxBars > 200 ? 32 : 16;
+    let ruler = '';
+    for (let b = 0; b <= maxBars; b += rulerStep) ruler += `<span style="left:${pct(b)}">${b + 1}</span>`;
+    const secs = o.sections.map(s => `<div class="sec" style="left:${pct(s.start)};width:${pct(s.len)};background:${labelColor(s.label)}" title="${esc(s.label)} · Takt ${s.start + 1}–${s.start + s.len}">${esc(s.label)}<small>${s.start + 1}</small></div>`).join('');
+    const n = o.energy.length;
+    let pts = `0,100 `;
+    o.energy.forEach((e, i) => { pts += `${i},${(100 - e * 92).toFixed(1)} ${i + 1},${(100 - e * 92).toFixed(1)} `; });
+    pts += `${n},100`;
+    let kick = '';
+    (o.kick || []).forEach((k, i) => { if (k >= 0.5) kick += `<rect x="${i}" y="96" width="1" height="4" fill="#ff5d5d"/>`; });
+    let auto = '';
+    (o.auto || []).forEach((v, i) => { if (v) auto += `<rect x="${i}" y="0" width="1" height="3" fill="var(--accent)"/>`; });
+    const grid = Array.from({ length: Math.floor(maxBars / 8) + 1 }, (_, i) => `<line x1="${i * 8}" x2="${i * 8}" y1="0" y2="100" stroke="${i % 2 ? '#232930' : '#2c333c'}" stroke-width="${maxBars / 600}" vector-effect="non-scaling-stroke"/>`).join('');
+    let lanes = '';
+    if (o.lanes) {
+      lanes = '<div class="lanes">' + Object.keys(o.lanes).map(k => {
+        let r = '';
+        o.lanes[k].forEach((v, i) => { if (v > 0) r += `<rect x="${i}" y="0" width="1" height="1" fill="${C.CATS[k].color}" fill-opacity="${(0.25 + 0.75 * v).toFixed(2)}"/>`; });
+        return `<div class="lane"><div class="ln">${esc(C.CATS[k].name)}</div><svg viewBox="0 0 ${maxBars} 1" preserveAspectRatio="none">${r}</svg></div>`;
+      }).join('') + '</div>';
+    }
+    el.innerHTML = `<div class="tl">
+      ${o.title ? `<div class="ttl"><span>${esc(o.title)}</span><span class="mono">${o.nBars} Takte</span></div>` : ''}
+      <div class="stage${lanePad}">
+        <div class="secs">${secs}</div>
+        <svg class="curve" viewBox="0 0 ${maxBars} 100" preserveAspectRatio="none">${grid}<polygon points="${pts}" fill="rgba(255,181,71,.25)" stroke="var(--accent)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>${kick}${auto}</svg>
+        <div class="hl"></div>
+      </div>
+      ${lanes}
+      <div class="ruler${lanePad}"><div style="position:relative;height:16px">${ruler}</div></div>
+    </div>`;
+    const hl = el.querySelector('.hl');
+    return {
+      highlight(a, b) { hl.style.display = 'block'; hl.style.left = pct(a); hl.style.width = pct(b - a); }
+    };
+  }
+
+  // ---------- Vergleich ----------
+  function structureFacts(x, bpm, bpb, t0) {
+    const secs = x.sections;
+    const firstBreak = secs.find(s => /breakdown/i.test(s.label));
+    const drops = secs.filter(s => /drop/i.test(s.label));
+    const intro = secs[0] && /intro/i.test(secs[0].label) ? secs[0].len : 0;
+    const lastS = secs[secs.length - 1];
+    const outro = lastS && /outro/i.test(lastS.label) ? lastS.len : 0;
+    const kickBars = (x.kick || []).filter(k => k >= 0.5).length;
+    return {
+      bars: x.nBars, time: fmtTime((t0 || 0) + barsToSec(x.nBars, bpm, bpb)),
+      intro, outro, firstBreak: firstBreak ? firstBreak.start + 1 : null, firstBreakLen: firstBreak ? firstBreak.len : null,
+      breaks: secs.filter(s => /breakdown/i.test(s.label)).length, drops: drops.length, firstDrop: drops[0] ? drops[0].start + 1 : null,
+      kickShare: x.nBars ? Math.round(kickBars / x.nBars * 100) : 0, nSec: secs.length,
+      avgSec: secs.length ? Math.round(x.nBars / secs.length) : 0
+    };
+  }
+  function renderCompare() {
+    const out = $('#cmp-out');
+    if (!S.ref || !S.proj) {
+      out.innerHTML = `<div class="card"><h2>Vergleich</h2><p class="sub">Lade zuerst ${!S.ref ? 'eine Referenz' : ''}${!S.ref && !S.proj ? ' und ' : ''}${!S.proj ? 'dein Projekt' : ''}.</p></div>`;
+      return;
+    }
+    const R = S.ref, P = S.proj;
+    const maxBars = Math.max(R.nBars, P.nBars);
+    const fr = structureFacts(R, R.bpm, 4), fp = structureFacts(P, P.tempo, P.numerator);
+    const rows = [
+      ['Gesamtlänge', `${fr.bars} Takte · ${fmtTime(R.duration)}`, `${fp.bars} Takte · ${fp.time}`, fp.bars < fr.bars * 0.75 ? `Dir fehlen ca. ${Math.round((fr.bars - fp.bars) / 8) * 8} Takte` : ''],
+      ['Intro', fr.intro ? fr.intro + ' Takte' : '–', fp.intro ? fp.intro + ' Takte' : '–', fp.intro < fr.intro ? 'Intro verlängern (DJ-Mix)' : ''],
+      ['Erster Breakdown ab', fr.firstBreak ? 'Takt ' + fr.firstBreak : '–', fp.firstBreak ? 'Takt ' + fp.firstBreak : '–', ''],
+      ['Länge 1. Breakdown', fr.firstBreakLen ? fr.firstBreakLen + ' Takte' : '–', fp.firstBreakLen ? fp.firstBreakLen + ' Takte' : '–', fp.firstBreakLen && fr.firstBreakLen && fp.firstBreakLen < fr.firstBreakLen / 2 ? 'Breakdown deutlich kürzer' : ''],
+      ['Breakdowns / Drops', `${fr.breaks} / ${fr.drops}`, `${fp.breaks} / ${fp.drops}`, ''],
+      ['Erster Drop ab', fr.firstDrop ? 'Takt ' + fr.firstDrop : '–', fp.firstDrop ? 'Takt ' + fp.firstDrop : '–', ''],
+      ['Anteil mit Kick', fr.kickShare + ' %', fp.kickShare + ' %', ''],
+      ['Ø Abschnittslänge', fr.avgSec + ' Takte', fp.avgSec + ' Takte', fp.avgSec < 12 ? 'Viele kurze Abschnitte: eher 16er-Blöcke denken' : ''],
+      ['Outro', fr.outro ? fr.outro + ' Takte' : '–', fp.outro ? fp.outro + ' Takte' : '–', fp.outro < fr.outro ? 'Outro verlängern' : '']
+    ];
+    out.innerHTML = `<div class="card">
+      <h2>Referenz vs. dein Track</h2>
+      <p class="sub">Beide auf derselben Takt-Skala. Takte sind tempounabhängig vergleichbar: ${R.bpm} BPM vs. ${P.tempo} BPM.</p>
+      <div id="cmp-tl-r"></div><div id="cmp-tl-p"></div>
+    </div>
+    <div class="card"><h3>Kennzahlen</h3>
+      <table class="cmp"><tr><th></th><th>${esc(R.file)}</th><th>${esc(P.file)}</th><th>Hinweis</th></tr>
+      ${rows.map(r => `<tr><td class="muted">${r[0]}</td><td class="num mono">${r[1]}</td><td class="num mono">${r[2]}</td><td style="color:var(--accent);font-size:13px">${esc(r[3])}</td></tr>`).join('')}</table>
+      <div class="row" style="margin-top:12px"><button class="btn primary" id="cmp-to-plan">Referenz-Aufbau als Plan übernehmen</button></div>
+    </div>`;
+    timeline($('#cmp-tl-r'), { nBars: R.nBars, maxBars, sections: R.sections, energy: R.energy, kick: R.kick, title: 'Referenz · ' + R.file });
+    timeline($('#cmp-tl-p'), { nBars: P.nBars, maxBars, sections: P.sections, energy: P.energy, kick: P.kick, auto: P.auto, title: 'Dein Track · ' + P.file });
+    $('#cmp-to-plan').addEventListener('click', () => { planFrom('ref', true); showView('plan'); });
+  }
+
+  // ---------- Plan ----------
+  const TEMPLATE = [
+    ['Intro', 32, 'Kick + Percussion, wenig Melodie. 16–32 Takte mixbar für DJs.'],
+    ['Groove A', 32, 'Bass kommt rein, erste Hook-Andeutung. Nach 16 Takten ein neues Element.'],
+    ['Breakdown 1', 16, 'Kick raus, Akkorde/Lead stehen allein, Reverb auf.'],
+    ['Build 1', 8, 'Snare-Roll, Filter auf, Riser. Letzter Takt: Stille oder Kick-Drop.'],
+    ['Drop 1', 32, 'Volle Energie, Hook komplett. Nach 16 Takten Variation.'],
+    ['Groove B', 16, 'Etwas zurücknehmen, z. B. Lead raus und Percussion-Variation.'],
+    ['Breakdown 2', 32, 'Länger und emotionaler als der erste, neues Melodie-Element.'],
+    ['Build 2', 8, 'Stärker als Build 1.'],
+    ['Drop 2', 32, 'Steigerung zu Drop 1: zusätzlicher Layer oder Bass-/Hook-Variation.'],
+    ['Outro', 32, 'Elemente nacheinander raus, am Ende Kick + Perc für den DJ-Mix.']
+  ];
+  let armed = null; // Zwei-Tipp-Bestätigung
+  function planFrom(src, force) {
+    if (S.plan.length && !force && armed !== src) {
+      armed = src;
+      $('#plan-src-note').textContent = 'Ersetzt deinen aktuellen Plan. Zum Bestätigen nochmal tippen.';
+      setTimeout(() => { if (armed === src) { armed = null; $('#plan-src-note').textContent = planSrcText(); } }, 4000);
+      return;
+    }
+    armed = null;
+    let secs = [];
+    if (src === 'proj') {
+      if (!S.proj) return status('#st-claude', 'Lade zuerst dein Projekt (Tab 2).', true);
+      secs = S.proj.sections.map(s => ({ label: s.label, len: s.len, note: 'Aktuell: ' + s.tracks.join(', ') }));
+      S.planBpm = S.proj.tempo;
+    } else if (src === 'ref') {
+      if (!S.ref) return status('#st-claude', 'Lade zuerst eine Referenz (Tab 1).', true);
+      secs = S.ref.sections.map(s => ({ label: s.label, len: Math.max(4, Math.round(s.len / 4) * 4), note: '' }));
+      S.planBpm = S.proj ? S.proj.tempo : S.ref.bpm;
+    } else {
+      secs = TEMPLATE.map(t => ({ label: t[0], len: t[1], note: t[2] }));
+      S.planBpm = S.proj ? S.proj.tempo : 140;
+    }
+    // Labels durchnummerieren, wenn sie sich wiederholen
+    const cnt = {}, seen = {};
+    secs.forEach(s => cnt[s.label] = (cnt[s.label] || 0) + 1);
+    secs.forEach(s => { if (cnt[s.label] > 1 && !/\d$/.test(s.label)) { seen[s.label] = (seen[s.label] || 0) + 1; s.label = s.label + ' ' + seen[s.label]; } });
+    S.plan = secs.map(s => ({ id: uid(), label: s.label, len: s.len, note: s.note, todos: [] }));
+    S.planSrc = src; S.ideas = null;
+    save(); dots(); renderPlan();
+  }
+  function planSrcText() { return S.plan.length ? ({ proj: 'Basis: dein Projekt', ref: 'Basis: Referenz' + (S.ref ? ' „' + S.ref.file + '“' : ''), tpl: 'Basis: Hard-House-Vorlage' }[S.planSrc] || '') : ''; }
+  document.querySelectorAll('[data-src]').forEach(b => b.addEventListener('click', () => planFrom(b.dataset.src)));
+  function planStarts() { let b = 0; return S.plan.map(s => { const st = b; b += s.len; return st; }); }
+  function planTotal() { return S.plan.reduce((x, s) => x + s.len, 0); }
+  const bpmPlan = () => S.planBpm || (S.proj && S.proj.tempo) || 140;
+
+  function renderPlanTimeline() {
+    const el = $('#plan-tl');
+    if (!S.plan.length) { el.innerHTML = '<p class="sub" style="margin-top:12px">Noch kein Plan. Wähle oben eine Basis.</p>'; return; }
+    const starts = planStarts(), tot = planTotal(), bpm = bpmPlan();
+    const energyGuess = s => { const l = s.label.toLowerCase(); return /drop/.test(l) ? 1 : /groove/.test(l) ? 0.75 : /build/.test(l) ? 0.6 : /break/.test(l) ? 0.3 : /intro|outro/.test(l) ? 0.45 : 0.6; };
+    const en = []; S.plan.forEach(s => { for (let i = 0; i < s.len; i++) en.push(energyGuess(s)); });
+    timeline(el, { nBars: tot, sections: S.plan.map((s, i) => ({ start: starts[i], len: s.len, label: s.label })), energy: en, title: `Plan · ${tot} Takte · ${fmtTime(barsToSec(tot, bpm, 4))} bei ${bpm} BPM` });
+  }
+  function renderPlan() {
+    $('#plan-bpm').value = bpmPlan();
+    $('#plan-src-note').textContent = planSrcText();
+    $('#genre').value = S.genre; $('#wish').value = S.wish;
+    renderPlanTimeline();
+    const starts = planStarts(), bpm = bpmPlan();
+    $('#plan-list').innerHTML = S.plan.map((s, i) => `<div class="plan-sec" data-i="${i}" style="border-left-color:${labelColor(s.label)}">
+      <div class="hd">
+        <input class="txt lbl" data-f="label" value="${esc(s.label)}" aria-label="Name des Abschnitts">
+        <span class="stepper"><button data-a="len" data-d="-4" aria-label="4 Takte kürzer">−</button><span>${s.len} Takte</span><button data-a="len" data-d="4" aria-label="4 Takte länger">+</button></span>
+        <span class="pos mono">T. ${starts[i] + 1}–${starts[i] + s.len} · ${fmtTime(barsToSec(starts[i], bpm, 4))}</span>
+        <span class="grow"></span>
+        <button class="btn small" data-a="up" ${i === 0 ? 'disabled' : ''} aria-label="nach oben">↑</button>
+        <button class="btn small" data-a="down" ${i === S.plan.length - 1 ? 'disabled' : ''} aria-label="nach unten">↓</button>
+        <button class="btn small" data-a="dup" aria-label="duplizieren">⧉</button>
+        <button class="btn small danger" data-a="del" aria-label="löschen">✕</button>
+      </div>
+      <div class="bd">
+        <textarea class="txt" data-f="note" placeholder="Was passiert hier? (Notiz)">${esc(s.note)}</textarea>
+        <div class="todos">${s.todos.map(t => todoHtml(t)).join('')}</div>
+        <button class="btn small" data-a="todo">+ To-do</button>
+        ${ideasFor(i)}
+      </div>
+    </div>`).join('');
+    renderGeneral();
+    renderIdeasHead();
+    dots();
+    growAll();
+  }
+  function grow(ta) { ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight + 2) + 'px'; }
+  function growAll() { document.querySelectorAll('#plan-list textarea, #general-list textarea').forEach(grow); }
+  window.addEventListener('resize', () => { clearTimeout(window.__gr); window.__gr = setTimeout(growAll, 150); });
+  function todoHtml(t) {
+    return `<div class="todo ${t.done ? 'done' : ''}" data-t="${t.id}"><input type="checkbox" ${t.done ? 'checked' : ''} data-a="tdone" aria-label="erledigt"><textarea class="txt" data-f="todo" rows="1">${esc(t.text)}</textarea><button class="btn small x" data-a="tdel" aria-label="To-do löschen">✕</button></div>`;
+  }
+  function renderGeneral() {
+    const card = $('#general-card');
+    card.style.display = S.general.length ? 'block' : 'none';
+    $('#general-list').innerHTML = S.general.map(t => todoHtml(t)).join('');
+  }
+  // Plan-Tab wird erst sichtbar gerendert, danach Höhen anpassen
+  document.querySelector('nav.tabs button[data-v=plan]').addEventListener('click', () => setTimeout(growAll, 0));
+  function findTodo(el) {
+    const id = el.closest('.todo').dataset.t;
+    const sec = el.closest('.plan-sec');
+    const list = sec ? S.plan[+sec.dataset.i].todos : S.general;
+    return { list, idx: list.findIndex(t => t.id === id) };
+  }
+  // Ereignisse im Plan (delegiert)
+  function onPlanInput(e) {
+    const el = e.target, f = el.dataset.f;
+    if (!f) return;
+    if (el.tagName === 'TEXTAREA') grow(el);
+    if (f === 'todo') { const { list, idx } = findTodo(el); if (idx >= 0) list[idx].text = el.value; save(); return; }
+    const sec = el.closest('.plan-sec'); if (!sec) return;
+    const s = S.plan[+sec.dataset.i];
+    s[f] = el.value;
+    if (f === 'label') { sec.style.borderLeftColor = labelColor(el.value); renderPlanTimeline(); }
+    save();
+  }
+  function onPlanClick(e) {
+    const el = e.target.closest('[data-a]'); if (!el) return;
+    const a = el.dataset.a;
+    if (a === 'tdone' || a === 'tdel') {
+      const { list, idx } = findTodo(el); if (idx < 0) return;
+      if (a === 'tdone') { list[idx].done = el.checked; el.closest('.todo').classList.toggle('done', el.checked); }
+      else { list.splice(idx, 1); renderPlan(); }
+      save(); return;
+    }
+    const sec = el.closest('.plan-sec'); if (!sec) return;
+    const i = +sec.dataset.i, s = S.plan[i];
+    if (a === 'len') s.len = Math.max(1, s.len + (+el.dataset.d));
+    else if (a === 'up' && i > 0) { [S.plan[i - 1], S.plan[i]] = [S.plan[i], S.plan[i - 1]]; remapIdeas(i, i - 1); }
+    else if (a === 'down' && i < S.plan.length - 1) { [S.plan[i + 1], S.plan[i]] = [S.plan[i], S.plan[i + 1]]; remapIdeas(i, i + 1); }
+    else if (a === 'dup') S.plan.splice(i + 1, 0, { id: uid(), label: s.label, len: s.len, note: s.note, todos: s.todos.map(t => ({ id: uid(), text: t.text, done: false })) });
+    else if (a === 'del') S.plan.splice(i, 1);
+    else if (a === 'todo') { s.todos.push({ id: uid(), text: '', done: false }); save(); renderPlan(); const ta = document.querySelector(`.plan-sec[data-i="${i}"] .todo:last-child textarea`); if (ta) ta.focus(); return; }
+    else if (a === 'take' || a === 'drop') {
+      const ideaId = el.dataset.id;
+      const idea = S.ideas && S.ideas.items.find(x => x.id === ideaId); if (!idea) return;
+      if (a === 'take') { const target = S.plan.find(p => p.id === idea.secId); if (target) target.todos.push({ id: uid(), text: idea.title + (idea.detail ? ': ' + idea.detail : '') + (idea.bars ? ' (' + idea.bars + ')' : ''), done: false }); }
+      S.ideas.items = S.ideas.items.filter(x => x.id !== ideaId);
+    }
+    save(); renderPlan();
+  }
+  function remapIdeas() { /* Ideen hängen per secId am Abschnitt, Reihenfolge egal */ }
+  ['#plan-list', '#general-list'].forEach(sel => { $(sel).addEventListener('input', onPlanInput); $(sel).addEventListener('click', onPlanClick); $(sel).addEventListener('change', e => { if (e.target.type === 'checkbox') onPlanClick(e); }); });
+  // Checkbox-Klick würde sonst doppelt feuern
+  $('#plan-list').addEventListener('click', e => { if (e.target.type === 'checkbox') e.stopImmediatePropagation(); }, true);
+  $('#general-list').addEventListener('click', e => { if (e.target.type === 'checkbox') e.stopImmediatePropagation(); }, true);
+
+  $('#plan-bpm').addEventListener('input', e => { const v = parseFloat(e.target.value); if (v > 40 && v < 250) { S.planBpm = v; save(); renderPlanTimeline(); document.querySelectorAll('.plan-sec').forEach((el, i) => { const st = planStarts()[i]; el.querySelector('.pos').textContent = `T. ${st + 1}–${st + S.plan[i].len} · ${fmtTime(barsToSec(st, v, 4))}`; }); } });
+  $('#plan-add').addEventListener('click', () => { S.plan.push({ id: uid(), label: 'Neuer Abschnitt', len: 16, note: '', todos: [] }); save(); renderPlan(); });
+  let clearArmed = false;
+  $('#plan-clear').addEventListener('click', e => {
+    if (!clearArmed) { clearArmed = true; e.target.textContent = 'Wirklich leeren?'; setTimeout(() => { clearArmed = false; e.target.textContent = 'Plan leeren'; }, 3000); return; }
+    clearArmed = false; e.target.textContent = 'Plan leeren';
+    S.plan = []; S.general = []; S.ideas = null; S.planSrc = ''; save(); renderPlan();
+  });
+  $('#plan-checks').addEventListener('click', () => {
+    if (!S.proj) return status('#st-claude', 'Lade zuerst dein Projekt (Tab 2).', true);
+    if (!S.plan.length) planFrom('proj', true);
+    const starts = planStarts();
+    const already = new Set([].concat(...S.plan.map(s => s.todos.map(t => t.text)), S.general.map(t => t.text)));
+    let added = 0;
+    for (const f of S.proj.findings) {
+      if (f.level === 'good') continue;
+      const text = f.title + ': ' + f.detail;
+      if (already.has(text)) continue;
+      let target = null;
+      if (f.bars && S.planSrc === 'proj') {
+        const i = starts.findIndex((st, k) => f.bars[0] >= st && f.bars[0] < st + S.plan[k].len);
+        if (i >= 0) target = S.plan[i];
+      }
+      (target ? target.todos : S.general).push({ id: uid(), text, done: false }); added++;
+    }
+    save(); renderPlan();
+    status('#st-claude', added ? `${added} Checks als To-dos übernommen.` : 'Alle Checks sind schon im Plan.');
+  });
+
+  function planText() {
+    const starts = planStarts(), bpm = bpmPlan(), tot = planTotal();
+    const name = S.proj ? S.proj.file : 'Track';
+    let t = `${name} – Arrangement-Plan (${bpm} BPM, ${tot} Takte ≈ ${fmtTime(barsToSec(tot, bpm, 4))})\n`;
+    if (S.ref) t += `Referenz: ${S.ref.file}\n`;
+    t += '\n';
+    S.plan.forEach((s, i) => {
+      t += `${i + 1}. ${s.label} – Takt ${starts[i] + 1}–${starts[i] + s.len} (${s.len} Takte, ab ${fmtTime(barsToSec(starts[i], bpm, 4))})\n`;
+      if (s.note) t += `   ${s.note.replace(/\n/g, '\n   ')}\n`;
+      s.todos.forEach(td => t += `   [${td.done ? 'x' : ' '}] ${td.text}\n`);
+      t += '\n';
+    });
+    if (S.general.length) { t += 'Allgemein:\n'; S.general.forEach(td => t += `   [${td.done ? 'x' : ' '}] ${td.text}\n`); }
+    return t;
+  }
+  async function copyText(text, title) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch (e) {
+      $('#modal-title').textContent = title; $('#modal-text').value = text; $('#modal').classList.add('on');
+      setTimeout(() => { $('#modal-text').focus(); $('#modal-text').select(); }, 50);
+      return false;
+    }
+  }
+  $('#modal-close').addEventListener('click', () => $('#modal').classList.remove('on'));
+  $('#plan-copy').addEventListener('click', async e => {
+    if (!S.plan.length) return;
+    if (await copyText(planText(), 'Arrangement-Plan')) { e.target.textContent = 'Kopiert ✓'; setTimeout(() => e.target.textContent = 'Plan kopieren', 1800); }
+  });
+
+  // ---------- Claude ----------
+  $('#genre').addEventListener('input', e => { S.genre = e.target.value; save(); });
+  $('#wish').addEventListener('input', e => { S.wish = e.target.value; save(); });
+  let sampleFn = null;
+  (async () => {
+    try { if (window.claude && window.claude.use) sampleFn = await window.claude.use('sample'); } catch (e) { sampleFn = null; }
+    if (!sampleFn) {
+      $('#ask-claude').style.display = 'none';
+      $('#ai-title').textContent = 'Inhaltliche Vorschläge per KI';
+      $('#paste-box').open = true;
+    }
+  })();
+
+  function buildPrompt() {
+    const P = S.proj, R = S.ref, bpm = bpmPlan(), starts = planStarts();
+    let t = `Du bist ein erfahrener Produzent und Arrangement-Coach für ${S.genre || 'elektronische Clubmusik'}. Antworte auf Deutsch, direkt, konkret und in Ableton Live umsetzbar. Keine Floskeln, kein Lob ohne Grund.\n\n`;
+    if (P) {
+      t += `## Projekt „${P.file}“\n${P.tempo} BPM, ${P.numerator}/4, ${P.nBars} Takte (${fmtTime(P.seconds)}). Geschätzte Tonart aus MIDI: ${P.key ? P.key.name : 'unbekannt'} (kann falsch sein).\n\nSpuren (Name · Kategorie · Gruppe · belegte Takte):\n`;
+      P.tracks.filter(x => x.clips && !x.muted).forEach(x => t += `- ${x.name} · ${C.CATS[x.cat].name} · ${x.group || '-'} · Takt ${x.from + 1}–${x.to}${x.auto ? ' · hat Automation' : ''}\n`);
+      const empty = P.tracks.filter(x => !x.clips).map(x => x.name);
+      if (empty.length) t += `Leere Spuren (vorbereitet, noch ungenutzt): ${empty.join(', ')}\n`;
+      t += `\nAktuelles Arrangement:\n`;
+      P.sections.forEach(s => t += `- Takt ${s.start + 1}–${s.start + s.len} ${s.label}: ${s.tracks.join(', ') || 'nichts'}\n`);
+      t += `Automation in Takten: ${P.autoRanges.length ? P.autoRanges.map(r => (r[0] + 1) + '–' + r[1]).join(', ') : 'keine'}\n`;
+      t += `\nAutomatische Checks:\n`;
+      P.findings.filter(f => f.level !== 'good').forEach(f => t += `- ${f.title}: ${f.detail}\n`);
+    }
+    if (R) {
+      t += `\n## Referenz „${R.file}“ (${R.bpm} BPM, ${R.nBars} Takte, ${fmtTime(R.duration)})\n`;
+      R.sections.forEach(s => t += `- Takt ${s.start + 1}–${s.start + s.len} ${s.label} (Energie ${Math.round(s.energy * 100)} %, Kick ${s.kick >= 0.5 ? 'ja' : 'nein'})\n`);
+    }
+    t += `\n## Plan des Nutzers (Ziel-Arrangement, ${bpm} BPM)\n`;
+    S.plan.forEach((s, i) => {
+      t += `[${i}] ${s.label}: Takt ${starts[i] + 1}–${starts[i] + s.len} (${s.len} Takte)${s.note ? ' – Notiz: ' + s.note.replace(/\n/g, ' ') : ''}\n`;
+      s.todos.forEach(td => t += `     To-do: ${td.text}\n`);
+    });
+    if (S.wish.trim()) t += `\n## Fokus des Nutzers\n${S.wish.trim()}\n`;
+    t += `\n## Aufgabe
+Mach inhaltliche Vorschläge für den PLAN, nicht für das alte Arrangement. Für jeden Plan-Abschnitt 1–3 Ideen: welche vorhandenen Spuren rein oder raus, Variationen, Fills, Automation (Filter, Sends, Pitch), neue Elemente, die dem Genre entsprechen, und der Übergang zum nächsten Abschnitt. Nenne vorhandene Spurnamen und Taktpositionen im Plan. Ideen, die schon als To-do im Plan stehen, nicht wiederholen. Du kannst den Track nicht hören: keine Aussagen über Klangqualität.
+Antworte NUR mit JSON in genau diesem Format:
+{"gesamt":"2–3 Sätze Gesamteinschätzung","prioritaeten":["die 3 wichtigsten Schritte, in Reihenfolge"],"abschnitte":[{"index":0,"ideen":[{"titel":"kurz","detail":"1–2 Sätze, konkret","takte":"z. B. Takt 29–32"}]}]}`;
+    return t;
+  }
+  function applyIdeas(j) {
+    const items = [];
+    (j.abschnitte || []).forEach(a => {
+      const sec = S.plan[+a.index]; if (!sec) return;
+      (a.ideen || []).forEach(id => items.push({ id: uid(), secId: sec.id, title: String(id.titel || ''), detail: String(id.detail || ''), bars: String(id.takte || '') }));
+    });
+    if (!items.length && !j.gesamt) throw new Error('In der Antwort stehen keine Vorschläge im erwarteten Format.');
+    S.ideas = { overall: String(j.gesamt || ''), prio: (j.prioritaeten || []).map(String), items, at: Date.now() };
+    save(); renderPlan();
+    status('#st-claude', `${items.length} Ideen. Übernimm, was passt; der Rest verschwindet mit „Verwerfen“.`);
+  }
+  $('#paste-apply').addEventListener('click', () => {
+    const raw = $('#paste-answer').value.trim();
+    if (!raw) return status('#st-claude', 'Erst die Antwort der KI einfügen.', true);
+    if (!S.plan.length) return status('#st-claude', 'Erst einen Plan anlegen und den Prompt kopieren, damit die Abschnitte zusammenpassen.', true);
+    try { applyIdeas(parseJsonLoose(raw.replace(/```(json)?/g, ''))); $('#paste-answer').value = ''; }
+    catch (e) { status('#st-claude', 'Konnte die Antwort nicht lesen: ' + esc(e.message) + '. Achte darauf, dass die ganze Antwort mit { … } eingefügt ist.', true); }
+  });
+  function parseJsonLoose(x) {
+    if (x && typeof x === 'object') return x;
+    const s = String(x || ''); const a = s.indexOf('{'), b = s.lastIndexOf('}');
+    if (a < 0 || b < a) throw new Error('Antwort war kein JSON');
+    return JSON.parse(s.slice(a, b + 1));
+  }
+  let busy = false;
+  $('#ask-claude').addEventListener('click', async () => {
+    if (busy || !sampleFn) return;
+    if (!S.plan.length) { if (S.proj) planFrom('proj', true); else if (S.ref) planFrom('ref', true); else planFrom('tpl', true); }
+    busy = true; $('#ask-claude').disabled = true;
+    status('#st-claude', '<i class="spin"></i>Claude arbeitet an Vorschlägen …');
+    try {
+      const prompt = buildPrompt();
+      let res;
+      if (typeof sampleFn.json === 'function') res = await sampleFn.json(prompt, { modelTier: 'default' });
+      else res = (await sampleFn(prompt, { modelTier: 'default' })).text;
+      applyIdeas(parseJsonLoose(res));
+    } catch (e) {
+      const code = e && e.code;
+      const msg = code === 'not_granted' ? 'Zugriff auf Claude wurde nicht erlaubt.' : code === 'rate_limited' ? 'Gerade zu viele Anfragen, versuch es in einer Minute nochmal.' : 'Das hat nicht geklappt: ' + esc((e && e.message) || e);
+      status('#st-claude', msg, true);
+      if (code === 'not_granted') sampleFn = null;
+    } finally { busy = false; $('#ask-claude').disabled = !sampleFn; }
+  });
+  $('#copy-prompt').addEventListener('click', async e => {
+    if (!S.plan.length) { if (S.proj) planFrom('proj', true); else planFrom('tpl', true); }
+    if (await copyText(buildPrompt(), 'Prompt für Claude')) { e.target.textContent = 'Kopiert ✓'; setTimeout(() => e.target.textContent = 'Prompt kopieren', 1800); }
+  });
+  function ideasFor(i) {
+    if (!S.ideas) return '';
+    const sec = S.plan[i];
+    const list = S.ideas.items.filter(x => x.secId === sec.id);
+    if (!list.length) return '';
+    return `<div style="margin-top:8px"><span class="muted" style="font-size:12.5px">Vorschläge von Claude</span>${list.map(x => `<div class="idea"><b>${esc(x.title)}</b>${x.bars ? `<span class="tk">${esc(x.bars)}</span>` : ''}<p>${esc(x.detail)}</p><div class="row"><button class="btn small primary" data-a="take" data-id="${x.id}">Übernehmen</button><button class="btn small" data-a="drop" data-id="${x.id}">Verwerfen</button></div></div>`).join('')}</div>`;
+  }
+  function renderIdeasHead() {
+    const out = $('#ideas-out');
+    if (!S.ideas) { out.innerHTML = ''; return; }
+    out.innerHTML = `<div style="margin-top:14px">${S.ideas.overall ? `<p>${esc(S.ideas.overall)}</p>` : ''}${S.ideas.prio.length ? `<b>Prioritäten</b><ol class="prio">${S.ideas.prio.map(p => `<li>${esc(p)}</li>`).join('')}</ol>` : ''}<p class="sub">Die Ideen stehen direkt bei den Abschnitten im Plan oben.</p></div>`;
+  }
+
+  // ---------- Start ----------
+  renderRef(); renderProj(); dots();
+  if (S.ref || S.proj) status(S.ref ? '#st-ref' : '#st-proj', 'Letzte Analyse wiederhergestellt.');
+})();
+</script>
+</body>
+</html>
